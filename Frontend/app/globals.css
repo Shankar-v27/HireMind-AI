@@ -1,0 +1,251 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-bg text-slate-100;
+}
+
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes landing-eye-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px 4px rgba(34, 211, 238, 0.6), 0 0 24px 8px rgba(34, 211, 238, 0.3); }
+  50% { opacity: 0.9; box-shadow: 0 0 20px 8px rgba(34, 211, 238, 0.9), 0 0 36px 12px rgba(34, 211, 238, 0.4); }
+}
+
+@keyframes landing-head-sway {
+  0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+  50% { transform: translateX(-50%) rotate(2deg); }
+}
+
+@keyframes landing-arm-left {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes landing-arm-right {
+  0%, 100% { transform: rotate(14deg); }
+  50% { transform: rotate(-10deg); }
+}
+
+@keyframes landing-leg-left {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(4deg); }
+}
+
+@keyframes landing-leg-right {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-4deg); }
+}
+
+@keyframes landing-chest-scan {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes landing-body-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.08); }
+}
+
+@keyframes landing-human-touch {
+  0%, 100% { opacity: 0.6; letter-spacing: 0.2em; }
+  50% { opacity: 1; letter-spacing: 0.35em; }
+}
+
+.landing-robot.float-animate {
+  animation: landing-float 3.5s ease-in-out infinite;
+}
+
+.landing-robot .eye-glow {
+  animation: landing-eye-glow 1.8s ease-in-out infinite;
+}
+
+.landing-robot .robot-head {
+  animation: landing-head-sway 4s ease-in-out infinite;
+}
+
+.landing-robot .robot-arm-left {
+  animation: landing-arm-left 2.5s ease-in-out infinite;
+}
+
+.landing-robot .robot-arm-right {
+  animation: landing-arm-right 2.5s ease-in-out infinite 0.15s;
+}
+
+.landing-robot .robot-leg-left {
+  animation: landing-leg-left 1.2s ease-in-out infinite;
+}
+
+.landing-robot .robot-leg-right {
+  animation: landing-leg-right 1.2s ease-in-out infinite 0.6s;
+}
+
+.landing-robot .robot-chest-line {
+  animation: landing-chest-scan 2s ease-in-out infinite;
+}
+
+.landing-robot .robot-torso {
+  animation: landing-body-pulse 3s ease-in-out infinite;
+}
+
+.landing-robot + .robot-tagline {
+  animation: landing-human-touch 3s ease-in-out infinite;
+}
+
+/* Hero robot v2 - characterful animated bot */
+@keyframes hero-robot-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-12px) scale(1.02); }
+}
+
+@keyframes hero-robot-antenna {
+  0%, 100% { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8)); }
+  50% { opacity: 0.7; transform: scale(1.2); filter: drop-shadow(0 0 16px rgba(34, 211, 238, 1)); }
+}
+
+@keyframes hero-robot-blink {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+
+@keyframes hero-robot-screen {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes hero-robot-wave-left {
+  0%, 100% { transform: rotate(-25deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes hero-robot-wave-right {
+  0%, 100% { transform: rotate(25deg); }
+  50% { transform: rotate(-5deg); }
+}
+
+@keyframes hero-robot-step {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-6px) rotate(3deg); }
+  75% { transform: translateY(-4px) rotate(-2deg); }
+}
+
+@keyframes hero-robot-step-alt {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-4px) rotate(-2deg); }
+  75% { transform: translateY(-6px) rotate(3deg); }
+}
+
+@keyframes hero-robot-shine {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.hero-robot-container {
+  animation: hero-robot-bob 4s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-antenna-dot {
+  animation: hero-robot-antenna 1.5s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-eye {
+  animation: hero-robot-blink 4s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-screen {
+  animation: hero-robot-screen 2.5s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-arm-l {
+  animation: hero-robot-wave-left 2s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-arm-r {
+  animation: hero-robot-wave-right 2s ease-in-out infinite 0.2s;
+}
+
+.hero-robot-container .hero-leg-l {
+  animation: hero-robot-step 1.4s ease-in-out infinite;
+}
+
+.hero-robot-container .hero-leg-r {
+  animation: hero-robot-step-alt 1.4s ease-in-out infinite;
+}
+
+/* AI Robot - blocky glowing purple bot */
+@keyframes ai-robot-sway {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+@keyframes ai-robot-glow-pulse {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(167, 139, 246, 0.9)); }
+  50% { opacity: 0.85; filter: drop-shadow(0 0 14px rgba(167, 139, 246, 1)); }
+}
+
+@keyframes ai-robot-particle-twinkle {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes ai-robot-arm-sway-l {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(4deg); }
+}
+
+@keyframes ai-robot-arm-sway-r {
+  0%, 100% { transform: rotate(12deg); }
+  50% { transform: rotate(-4deg); }
+}
+
+@keyframes ai-robot-leg-step-l {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(2deg); }
+}
+
+@keyframes ai-robot-leg-step-r {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-2px) rotate(-2deg); }
+}
+
+@keyframes ai-robot-tagline-glow {
+  0%, 100% { opacity: 0.85; text-shadow: 0 0 12px rgba(34, 211, 238, 0.5); }
+  50% { opacity: 1; text-shadow: 0 0 20px rgba(34, 211, 238, 0.8); }
+}
+
+.hero-robot-ai .ai-robot-body {
+  animation: ai-robot-sway 3s ease-in-out infinite;
+}
+
+.hero-robot-ai .ai-robot-glow {
+  animation: ai-robot-glow-pulse 2s ease-in-out infinite;
+}
+
+.hero-robot-ai .ai-robot-particle {
+  animation: ai-robot-particle-twinkle 2.5s ease-in-out infinite;
+}
+
+.hero-robot-ai .ai-robot-arm-l {
+  animation: ai-robot-arm-sway-l 2.2s ease-in-out infinite;
+}
+
+.hero-robot-ai .ai-robot-arm-r {
+  animation: ai-robot-arm-sway-r 2.2s ease-in-out infinite 0.15s;
+}
+
+.hero-robot-ai .ai-robot-leg-l {
+  animation: ai-robot-leg-step-l 1.8s ease-in-out infinite;
+}
+
+.hero-robot-ai .ai-robot-leg-r {
+  animation: ai-robot-leg-step-r 1.8s ease-in-out infinite 0.2s;
+}
+
+.ai-robot-tagline {
+  animation: ai-robot-tagline-glow 2.5s ease-in-out infinite;
+}
+

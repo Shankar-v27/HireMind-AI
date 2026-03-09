@@ -1,0 +1,21 @@
+from pydantic import BaseModel, EmailStr
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: str | None = None
+
+
+class UserCreate(UserBase):
+    password: str
+    role: str
+
+
+class UserRead(UserBase):
+    id: int
+    role: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+

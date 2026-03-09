@@ -17,7 +17,7 @@ class Settings(BaseModel):
     debug: bool = environment != "production"
 
     # Explicit origins required when allow_credentials=True (browsers reject "*")
-    backend_cors_origins: list[str] = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()]
+    backend_cors_origins: list[str] = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,https://hire-mind-ai.vercel.app/").split(",") if o.strip()]
 
     database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/ai_hiring")
 

@@ -1078,6 +1078,18 @@ export default function CompanyInterviewPage() {
                           </div>
                         </div>
                         <p className="mt-2 whitespace-pre-wrap text-slate-300">{row.content || "—"}</p>
+                        {(row.plagiarism || row.cross_plagiarism) && (
+                          <div className="mt-2 grid gap-2 md:grid-cols-2">
+                            <div className="rounded border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
+                              <p className="mb-1 font-medium text-slate-200">Plagiarism</p>
+                              {row.plagiarism ? renderPlagiarismSummary(row.plagiarism) : <p className="text-slate-500">Not checked</p>}
+                            </div>
+                            <div className="rounded border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
+                              <p className="mb-1 font-medium text-slate-200">Cross Plagiarism</p>
+                              {row.cross_plagiarism ? renderPlagiarismSummary(row.cross_plagiarism) : <p className="text-slate-500">Not checked</p>}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

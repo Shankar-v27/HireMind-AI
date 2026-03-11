@@ -1,4 +1,5 @@
 # HireMind AI
+Use Chrome alone
 
 Live app: https://hire-mind-ai.vercel.app/
 

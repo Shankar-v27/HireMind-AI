@@ -138,16 +138,16 @@ export default function CandidateTakeRoundPage() {
   const [runResults, setRunResults] = useState<Record<number, { passed: number; failed: number; total: number; results: any[] }>>({});
   const [liveInfo, setLiveInfo] = useState<LiveInterviewInfo | null>(null);
   const [preJoinDone, setPreJoinDone] = useState(false);
-  const [showReverifyModal, setShowReverifyModal] = useState(false);
-  const [reverifyPhoto, setReverifyPhoto] = useState<string | null>(null);
-  const [reverifySubmitting, setReverifySubmitting] = useState(false);
-  const [reverifyError, setReverifyError] = useState<string | null>(null);
-  const reverifyVideoRef = useRef<HTMLVideoElement | null>(null);
-  const reverifyStreamRef = useRef<MediaStream | null>(null);
   const [preJoinCameraOk, setPreJoinCameraOk] = useState(false);
   const [preJoinMicOk, setPreJoinMicOk] = useState(false);
+  const [preJoinCameraTesting, setPreJoinCameraTesting] = useState(false);
+  const [preJoinMicTesting, setPreJoinMicTesting] = useState(false);
+  const [preJoinMicLevel, setPreJoinMicLevel] = useState(0);
   const [preJoinError, setPreJoinError] = useState<string | null>(null);
   const preJoinStreamRef = useRef<MediaStream | null>(null);
+  const preJoinMicStreamRef = useRef<MediaStream | null>(null);
+  const preJoinMicAudioContextRef = useRef<AudioContext | null>(null);
+  const preJoinMicAnimationRef = useRef<number | null>(null);
   const preJoinVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const [techConversation, setTechConversation] = useState<{ role: string; content: string }[]>([]);
@@ -242,75 +242,92 @@ export default function CandidateTakeRoundPage() {
     fetchRoundAndQuestions();
   }, [fetchRoundAndQuestions]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const need = sessionStorage.getItem("hiremind_need_reverify") === "1";
-    const justLoggedIn = sessionStorage.getItem("hiremind_just_logged_in") === "1";
-    if (justLoggedIn) {
-      sessionStorage.removeItem("hiremind_just_logged_in");
-      sessionStorage.setItem("hiremind_need_reverify", "1");
-    }
-    if (need) setShowReverifyModal(true);
+  const stopPreJoinCamera = useCallback(() => {
+    preJoinStreamRef.current?.getTracks().forEach((t) => t.stop());
+    preJoinStreamRef.current = null;
+    const video = preJoinVideoRef.current;
+    if (video) video.srcObject = null;
+    setPreJoinCameraTesting(false);
   }, []);
 
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") sessionStorage.setItem("hiremind_need_reverify", "1");
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => document.removeEventListener("visibilitychange", onVisibility);
+  const stopPreJoinMic = useCallback(() => {
+    if (preJoinMicAnimationRef.current) cancelAnimationFrame(preJoinMicAnimationRef.current);
+    preJoinMicAnimationRef.current = null;
+    preJoinMicAudioContextRef.current?.close().catch(() => {});
+    preJoinMicAudioContextRef.current = null;
+    preJoinMicStreamRef.current?.getTracks().forEach((t) => t.stop());
+    preJoinMicStreamRef.current = null;
+    setPreJoinMicLevel(0);
+    setPreJoinMicTesting(false);
   }, []);
 
-  useEffect(() => {
-    if (!showReverifyModal) return;
-    let cancelled = false;
-    let attachTimeout: ReturnType<typeof setTimeout> | null = null;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }).then((stream) => {
-      if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
-      reverifyStreamRef.current = stream;
-      const attach = () => {
-        const video = reverifyVideoRef.current;
-        if (video && stream) { video.srcObject = stream; video.play().catch(() => {}); }
-      };
-      attach();
-      attachTimeout = setTimeout(attach, 150);
-    }).catch(() => setReverifyError("Camera access needed for re-verification."));
-    return () => {
-      cancelled = true;
-      if (attachTimeout) clearTimeout(attachTimeout);
-      reverifyStreamRef.current?.getTracks().forEach((t) => t.stop());
-      reverifyStreamRef.current = null;
-    };
-  }, [showReverifyModal]);
-
-  useEffect(() => {
-    if (preJoinDone || loading || !round || isLiveRound) return;
+  const startPreJoinCamera = useCallback(async () => {
     setPreJoinError(null);
-    let cancelled = false;
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 640, height: 480 }, audio: true })
-      .then((stream) => {
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
-        preJoinStreamRef.current = stream;
-        const videoTrack = stream.getVideoTracks()[0];
-        const audioTrack = stream.getAudioTracks()[0];
-        setPreJoinCameraOk(!!videoTrack);
-        setPreJoinMicOk(!!audioTrack);
-        const video = preJoinVideoRef.current;
-        if (video) { video.srcObject = stream; video.play().catch(() => {}); }
-      })
-      .catch((err: { name?: string }) => {
-        if (cancelled) return;
-        const msg = err?.name === "NotAllowedError" ? "Camera and microphone access are required. Please allow and refresh." : "Could not access camera or microphone.";
-        setPreJoinError(msg);
+    try {
+      stopPreJoinCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: 640, height: 480 },
+        audio: false,
       });
-    return () => {
-      cancelled = true;
-      preJoinStreamRef.current?.getTracks().forEach((t) => t.stop());
-      preJoinStreamRef.current = null;
+      preJoinStreamRef.current = stream;
+      setPreJoinCameraOk(true);
+      setPreJoinCameraTesting(true);
+      const video = preJoinVideoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play().catch(() => {});
+      }
+    } catch (err: any) {
       setPreJoinCameraOk(false);
+      setPreJoinError(
+        err?.name === "NotAllowedError"
+          ? "Camera permission denied. Please allow camera access."
+          : "Could not access camera."
+      );
+    }
+  }, [stopPreJoinCamera]);
+
+  const startPreJoinMic = useCallback(async () => {
+    setPreJoinError(null);
+    try {
+      stopPreJoinMic();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      preJoinMicStreamRef.current = stream;
+      const ctx = new AudioContext();
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.7;
+      src.connect(analyser);
+      preJoinMicAudioContextRef.current = ctx;
+      setPreJoinMicTesting(true);
+      setPreJoinMicOk(true);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        const avg = sum / data.length;
+        setPreJoinMicLevel(Math.min(1, avg / 120));
+        preJoinMicAnimationRef.current = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch (err: any) {
       setPreJoinMicOk(false);
+      setPreJoinError(
+        err?.name === "NotAllowedError"
+          ? "Microphone permission denied. Please allow microphone access."
+          : "Could not access microphone."
+      );
+    }
+  }, [stopPreJoinMic]);
+
+  useEffect(() => {
+    return () => {
+      stopPreJoinCamera();
+      stopPreJoinMic();
     };
-  }, [preJoinDone, loading, round, isLiveRound]);
+  }, [stopPreJoinCamera, stopPreJoinMic]);
 
   useEffect(() => {
     if (isLiveRound && liveInfo?.meeting_url && !document.fullscreenElement) {
@@ -376,46 +393,13 @@ export default function CandidateTakeRoundPage() {
 
   const handleLeaveRound = () => {
     stop();
-    if (typeof window !== "undefined") sessionStorage.setItem("hiremind_need_reverify", "1");
     reportEvent("logout", {});
     router.push("/dashboard/candidate");
   };
 
-  const handleReverifyCapture = () => {
-    const video = reverifyVideoRef.current;
-    if (!video || !video.srcObject) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-    setReverifyPhoto(dataUrl.split(",")[1] || dataUrl);
-    setReverifyError(null);
-  };
-
-  const handleReverifySubmit = async () => {
-    if (!reverifyPhoto) return;
-    setReverifySubmitting(true);
-    setReverifyError(null);
-    try {
-      await candidateApi.reverifyPhoto(reverifyPhoto);
-      sessionStorage.removeItem("hiremind_need_reverify");
-      reverifyStreamRef.current?.getTracks().forEach((t) => t.stop());
-      reverifyStreamRef.current = null;
-      setShowReverifyModal(false);
-      setReverifyPhoto(null);
-    } catch (e: any) {
-      setReverifyError(getApiErrorMessage(e?.response?.data?.detail, "Re-verification failed. Please try again."));
-    } finally {
-      setReverifySubmitting(false);
-    }
-  };
-
   const handlePreJoinJoin = () => {
-    preJoinStreamRef.current?.getTracks().forEach((t) => t.stop());
-    preJoinStreamRef.current = null;
+    stopPreJoinCamera();
+    stopPreJoinMic();
     setPreJoinDone(true);
   };
 
@@ -810,77 +794,13 @@ export default function CandidateTakeRoundPage() {
     );
   }
 
-  if (showReverifyModal) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6">
-        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
-          <h1 className="text-xl font-semibold text-white">Re-verify your identity</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            You left or switched tabs. Take a new photo to match with your ID and continue.
-          </p>
-          <div className="mt-6">
-            {!reverifyPhoto ? (
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
-                <video
-                  ref={reverifyVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="h-full w-full object-cover"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-32 w-32 rounded-full border-2 border-dashed border-violet-500/70" />
-                </div>
-              </div>
-            ) : (
-              <div className="aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
-                <img src={`data:image/jpeg;base64,${reverifyPhoto}`} alt="Captured" className="h-full w-full object-cover" />
-              </div>
-            )}
-          </div>
-          {reverifyError && <p className="mt-3 text-sm text-red-400">{reverifyError}</p>}
-          <div className="mt-6 flex gap-3">
-            {!reverifyPhoto ? (
-              <button
-                type="button"
-                onClick={handleReverifyCapture}
-                disabled={!reverifyStreamRef.current}
-                className="flex-1 rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
-              >
-                Capture photo
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setReverifyPhoto(null)}
-                  className="rounded-lg border border-slate-600 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800"
-                >
-                  Retake
-                </button>
-                <button
-                  type="button"
-                  onClick={handleReverifySubmit}
-                  disabled={reverifySubmitting}
-                  className="flex-1 rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
-                >
-                  {reverifySubmitting ? "Verifying…" : "Submit & continue"}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   if (!preJoinDone && !loading && round && !isLiveRound) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6">
         <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
           <h1 className="text-xl font-semibold text-white">Check your camera & microphone</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Before joining, make sure your camera and mic work. You’ll need them for this round.
+            Verification is done only once in the Verification section. Before joining, you can test your camera and mic like a meeting lobby.
           </p>
           <div className="mt-6 aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
             <video
@@ -899,14 +819,32 @@ export default function CandidateTakeRoundPage() {
               {preJoinMicOk ? "✓ Microphone" : "○ Microphone"}
             </span>
           </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={preJoinCameraTesting ? stopPreJoinCamera : startPreJoinCamera}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              {preJoinCameraTesting ? "Stop Camera Test" : "Start Camera Test"}
+            </button>
+            <button
+              type="button"
+              onClick={preJoinMicTesting ? stopPreJoinMic : startPreJoinMic}
+              className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              {preJoinMicTesting ? "Stop Mic Test" : "Start Mic Test"}
+            </button>
+          </div>
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.round(preJoinMicLevel * 100)}%` }} />
+          </div>
           {preJoinError && <p className="mt-3 text-sm text-red-400">{preJoinError}</p>}
           <button
             type="button"
             onClick={handlePreJoinJoin}
-            disabled={!preJoinCameraOk}
-            className="mt-6 w-full rounded-xl bg-indigo-600 py-4 text-lg font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+            className="mt-6 w-full rounded-xl bg-indigo-600 py-4 text-lg font-medium text-white hover:bg-indigo-500"
           >
-            Join
+            Continue to Round
           </button>
         </div>
       </main>

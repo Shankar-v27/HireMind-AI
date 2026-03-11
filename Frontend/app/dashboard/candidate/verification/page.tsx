@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { candidateApi, clearToken, getApiErrorMessage, getToken } from "@/lib/api";
 
 type Step = "id" | "photo" | "resume";
@@ -22,6 +23,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export default function CandidateVerificationPage() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("id");
   const [verification, setVerification] = useState<Awaited<ReturnType<typeof candidateApi.getVerification>>["data"]>(null);
   const [loading, setLoading] = useState(true);
@@ -292,6 +294,7 @@ export default function CandidateVerificationPage() {
     | { expected_name?: string; extracted_name?: string | null; checked?: boolean; match?: boolean | null }
     | undefined;
   const isApproved = verification?.status === "approved";
+  const verificationRequired = searchParams.get("required") === "1";
 
   if (loading) return <div className="p-4 text-slate-400">Loading...</div>;
 
@@ -303,6 +306,11 @@ export default function CandidateVerificationPage() {
     <main className="mx-auto max-w-2xl space-y-8 p-6 md:p-8">
       <header>
         <h1 className="text-2xl font-bold text-white">Identity Verification</h1>
+        {verificationRequired && (
+          <p className="mt-2 rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">
+            Verification is required before entering rounds. Please complete ID, Photo capture, and Resume here.
+          </p>
+        )}
         <p className="mt-1 text-slate-300">
           {verification?.id_proof_url && verification?.resume_url
             ? "Your ID and resume are on file. Please take a new photo to verify your identity for this interview."

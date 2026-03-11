@@ -54,6 +54,7 @@ export default function InterviewResponsesPage() {
   const [topPerformers, setTopPerformers] = useState<TopPerformer[] | null>(null);
   const [responsesByRound, setResponsesByRound] = useState<Record<number, ResponseRow[]>>({});
   const [plagiarismByRound, setPlagiarismByRound] = useState<Record<number, PlagiarismSummary | null>>({});
+  const [plagiarismLoadingRound, setPlagiarismLoadingRound] = useState<number | null>(null);
   const [expandedRound, setExpandedRound] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"rounds" | "top">("rounds");
   const [loading, setLoading] = useState(true);
@@ -87,8 +88,8 @@ export default function InterviewResponsesPage() {
     loadData();
   }, [id, router, loadData]);
 
-  const loadRoundResponses = (roundId: number) => {
-    if (responsesByRound[roundId]) return;
+  const loadRoundResponses = (roundId: number, force = false) => {
+    if (!force && responsesByRound[roundId]) return;
     companyApi
       .listResponsesByRound(id, roundId)
       .then((r) => setResponsesByRound((prev) => ({ ...prev, [roundId]: r.data ?? [] })))
@@ -96,10 +97,16 @@ export default function InterviewResponsesPage() {
   };
 
   const handleCheckPlagiarism = (roundId: number) => {
+    setPlagiarismLoadingRound(roundId);
     companyApi
       .plagiarismCheck(roundId)
-      .then((r) => setPlagiarismByRound((prev) => ({ ...prev, [roundId]: r.data })))
-      .catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Plagiarism check failed")));
+      .then((r) => {
+        setPlagiarismByRound((prev) => ({ ...prev, [roundId]: r.data }));
+        // Refresh round responses so plagiarism flags/scores are visible immediately.
+        loadRoundResponses(roundId, true);
+      })
+      .catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Plagiarism check failed")))
+      .finally(() => setPlagiarismLoadingRound(null));
   };
 
   const handleCreateFromShortlisted = async () => {
@@ -202,9 +209,10 @@ export default function InterviewResponsesPage() {
                       <button
                         type="button"
                         onClick={() => handleCheckPlagiarism(round.id)}
+                        disabled={plagiarismLoadingRound === round.id}
                         className="mb-4 inline-flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-500/20"
                       >
-                        <span aria-hidden>🛡</span> Check Plagiarism & AI
+                        <span aria-hidden>🛡</span> {plagiarismLoadingRound === round.id ? "Checking..." : "Check Plagiarism & AI"}
                       </button>
                       {plagiarismByRound[round.id] && (
                         <div className="mb-4 rounded-lg border border-slate-700 bg-slate-950/60 p-3 text-sm">

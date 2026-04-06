@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-  @apply bg-bg text-slate-100;
+  @apply bg-black text-zinc-100;
 }
 
 @keyframes landing-float {
@@ -247,5 +247,21 @@ body {
 
 .ai-robot-tagline {
   animation: ai-robot-tagline-glow 2.5s ease-in-out infinite;
+}
+
+.loader {
+  display: inline-block;
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  animation: spline-loader-spin 0.75s linear infinite;
+}
+
+@keyframes spline-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 

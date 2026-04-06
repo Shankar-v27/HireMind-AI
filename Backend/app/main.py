@@ -16,7 +16,7 @@ from app.core.config import get_settings
 from app.core.security import get_password_hash
 from app.db.session import Base, engine, SessionLocal
 from app.models.user import User, UserRole
-from app.routers import admin, auth, company, candidate, proctoring
+from app.routers import admin, auth, company, candidate, proctoring, round0
 
 
 settings = get_settings()
@@ -96,6 +96,7 @@ def ensure_schema_migrations() -> None:
         _safe_add_column(conn, "responses", "grading_details", "JSONB")
         _safe_add_column(conn, "round_sessions", "meeting_url", "TEXT")
         _safe_add_column(conn, "round_sessions", "meeting_room_name", "VARCHAR(255)")
+        _safe_add_column(conn, "round0_candidates", "resume_text", "TEXT")
 
 
 @app.on_event("startup")
@@ -115,4 +116,5 @@ app.include_router(admin.router)
 app.include_router(company.router)
 app.include_router(candidate.router)
 app.include_router(proctoring.router)
+app.include_router(round0.router)
 

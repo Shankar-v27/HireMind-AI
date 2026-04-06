@@ -236,3 +236,75 @@ class GDSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class Round0Job(Base):
+    __tablename__ = "round0_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    jd_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Round0Candidate(Base):
+    __tablename__ = "round0_candidates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("round0_jobs.id"), nullable=False, index=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    mobile_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    resume_path: Mapped[str] = mapped_column(String(500), nullable=False)
+    resume_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    resume_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Round0Evaluation(Base):
+    __tablename__ = "round0_evaluations"
+    __table_args__ = (UniqueConstraint("candidate_id", "job_id", name="uq_round0_eval_candidate_job"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("round0_candidates.id"), nullable=False, index=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("round0_jobs.id"), nullable=False, index=True)
+    skills_match: Mapped[float] = mapped_column(Float, default=0)
+    experience_match: Mapped[float] = mapped_column(Float, default=0)
+    project_score: Mapped[float] = mapped_column(Float, default=0)
+    education_score: Mapped[float] = mapped_column(Float, default=0)
+    overall_score: Mapped[float] = mapped_column(Float, default=0)
+    decision: Mapped[str] = mapped_column(String(50), nullable=False, default="rejected")
+    missing_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    strengths: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    weaknesses: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Round0EvalCache(Base):
+    __tablename__ = "round0_eval_cache"
+    __table_args__ = (UniqueConstraint("company_id", "jd_fingerprint", "resume_hash", name="uq_round0_cache_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False, index=True)
+    jd_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    resume_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Round0CallReport(Base):
+    __tablename__ = "round0_call_reports"
+    __table_args__ = (UniqueConstraint("candidate_id", "job_id", name="uq_round0_call_candidate_job"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    candidate_id: Mapped[int] = mapped_column(ForeignKey("round0_candidates.id"), nullable=False, index=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("round0_jobs.id"), nullable=False, index=True)
+    vapi_call_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    call_status: Mapped[str] = mapped_column(String(50), default="pending")
+    availability_date: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+

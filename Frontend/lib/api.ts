@@ -11,7 +11,19 @@ export function getApiErrorMessage(detail: unknown, fallback: string): string {
   return fallback;
 }
 
-const BASE_URL = typeof window !== "undefined" ? (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000") : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const LOCAL_API_URL = process.env.NEXT_PUBLIC_API_URL_LOCAL || "http://localhost:8000";
+const SHORTLIST_API_URL = process.env.NEXT_PUBLIC_SHORTLIST_API_URL || LOCAL_API_URL;
+const isLocalFrontend = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+let activeBaseUrl = isLocalFrontend ? LOCAL_API_URL : PRIMARY_API_URL;
+
+function canFallbackToLocal(currentUrl?: string): boolean {
+  return Boolean(
+    LOCAL_API_URL &&
+      currentUrl &&
+      currentUrl !== LOCAL_API_URL
+  );
+}
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -40,8 +52,19 @@ export function clearToken(): void {
 }
 
 const api: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: activeBaseUrl,
   headers: { "Content-Type": "application/json" },
+});
+
+const shortlistApiClient: AxiosInstance = axios.create({
+  baseURL: SHORTLIST_API_URL,
+  headers: { "Content-Type": "application/json" },
+});
+
+shortlistApiClient.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
 api.interceptors.request.use((config) => {
@@ -56,6 +79,18 @@ let refreshQueue: ((token: string) => void)[] = [];
 api.interceptors.response.use(
   (r) => r,
   async (err) => {
+    // If primary API is unreachable (network/DNS/CORS-level failure), switch to local API once.
+    if (!err?.response && canFallbackToLocal(api.defaults.baseURL)) {
+      activeBaseUrl = LOCAL_API_URL;
+      api.defaults.baseURL = activeBaseUrl;
+      const originalRequest = err?.config;
+      if (originalRequest && !originalRequest._localRetry) {
+        originalRequest._localRetry = true;
+        originalRequest.baseURL = activeBaseUrl;
+        return api(originalRequest);
+      }
+    }
+
     const originalRequest = err?.config;
     if (err?.response?.status === 401 && !originalRequest?._retry) {
       const refresh = getRefreshToken();
@@ -71,7 +106,7 @@ api.interceptors.response.use(
         isRefreshing = true;
         originalRequest._retry = true;
         try {
-          const res = await axios.post(`${BASE_URL}/auth/refresh`, { refresh_token: refresh });
+          const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refresh_token: refresh });
           const { access_token, refresh_token: newRefresh } = res.data;
           setToken(access_token);
           if (newRefresh) setRefreshToken(newRefresh);
@@ -327,6 +362,50 @@ export const proctoringApi = {
     }>("/proctoring/analyze-frame", {
       image_base64: imageBase64,
     }),
+};
+
+export const shortlistApi = {
+  createJob: (data: { title: string; description: string }) =>
+    shortlistApiClient.post<{ success: boolean; data: { id: string; title: string; description: string; createdAt: string } }>("/jobs", data),
+  uploadResumes: (files: File[]) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("resumes", f));
+    return shortlistApiClient.post<{ success: boolean; count: number; data: { id: string; name?: string; mobileNumber?: string; resumeUrl: string }[] }>(
+      "/candidates/upload",
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+  },
+  shortlistCandidates: (jobId: string, candidateIds: string[] = []) =>
+    shortlistApiClient.post<{
+      success: boolean;
+      shortlisted: Array<{ candidateId: string; name?: string; mobileNumber?: string; resumeUrl: string; evaluation: { overall_score: number; decision: string; reason: string } }>;
+      rejected: Array<{ candidateId: string; name?: string; mobileNumber?: string; resumeUrl: string; evaluation: { overall_score: number; decision: string; reason: string } }>;
+    }>(`/shortlist/${jobId}`, { candidate_ids: candidateIds }),
+  downloadShortlistedCsv: (jobId: string) =>
+    shortlistApiClient.get(`/shortlist/report/${jobId}/csv`, { responseType: "blob" }),
+  callShortlisted: (jobId: string) =>
+    shortlistApiClient.post<{ success: boolean; called: number; skipped: number; failed: number }>(`/caller/call-shortlisted/${jobId}`),
+  downloadCallerReportCsv: (jobId: string) =>
+    shortlistApiClient.get(`/caller/report/${jobId}/csv`, { responseType: "blob" }),
+  uploadCsvAndCall: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return shortlistApiClient.post<{
+      success: boolean;
+      called: number;
+      skipped: number;
+      failed: number;
+      details: Array<{
+        name?: string;
+        mobileNumber?: string;
+        status: string;
+        availabilityDate?: string;
+        notes?: string;
+        reason?: string;
+      }>;
+    }>("/caller/upload-csv-and-call", form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
 };
 
 export default api;

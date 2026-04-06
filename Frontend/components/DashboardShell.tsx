@@ -110,6 +110,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               >
                 <span>📋</span> Interviews
               </Link>
+              <Link
+                href="/dashboard/company/caller-agent"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                  pathname?.startsWith("/dashboard/company/caller-agent")
+                    ? "bg-zinc-100 text-black"
+                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                }`}
+              >
+                <span>📞</span> Caller Agent
+              </Link>
             </>
           ) : segment === "admin" ? (
             <>

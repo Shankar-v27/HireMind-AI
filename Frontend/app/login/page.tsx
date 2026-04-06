@@ -30,7 +30,12 @@ export default function LoginPage() {
       if (axErr?.response?.status === 401) {
         setError(getApiErrorMessage(axErr?.response?.data?.detail, "Incorrect email or password."));
       } else if (!axErr?.response && (axErr?.code === "ERR_NETWORK" || axErr?.message?.toLowerCase().includes("network"))) {
-        setError("Cannot reach the API. Make sure the backend is running at " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"));
+        setError(
+          "Cannot reach the API. Tried deployed backend at " +
+            (process.env.NEXT_PUBLIC_API_URL || "https://hiremind-ai-5kza.onrender.com") +
+            " and local backend at " +
+            (process.env.NEXT_PUBLIC_API_URL_LOCAL || "http://localhost:8000")
+        );
       } else {
         setError(getApiErrorMessage(axErr?.response?.data?.detail, axErr?.message || "Login failed."));
       }

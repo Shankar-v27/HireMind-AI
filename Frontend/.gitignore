@@ -1,6 +1,7 @@
 .next/
 node_modules/
 out/
+.env
 dist/
 .env
 .env.local

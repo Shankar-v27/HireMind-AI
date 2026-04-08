@@ -254,6 +254,7 @@ class Round0Candidate(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     job_id: Mapped[int] = mapped_column(ForeignKey("round0_jobs.id"), nullable=False, index=True)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     mobile_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
     resume_path: Mapped[str] = mapped_column(String(500), nullable=False)
     resume_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)

@@ -11,6 +11,11 @@ if _env_path.exists():
     from dotenv import load_dotenv
     load_dotenv(_env_path)
 
+_frontend_env_path = _env_path.parent.parent / "Frontend" / ".env"
+if _frontend_env_path.exists():
+    from dotenv import load_dotenv
+    load_dotenv(_frontend_env_path, override=False)
+
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",

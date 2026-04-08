@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import base64
 import csv
+import smtplib
 import hashlib
 import io
 import os
 import re
+import ssl
+import time
 from datetime import datetime
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
@@ -70,6 +74,15 @@ def _extract_phone(text: str) -> str | None:
     return None
 
 
+def _extract_email(text: str) -> str | None:
+    matches = re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text or "")
+    for raw in matches:
+        email = raw.strip().strip(".,;:()[]{}<>\"'")
+        if email:
+            return email
+    return None
+
+
 def _normalize_indian_phone(raw: str | None) -> str | None:
     s = str(raw or "").strip()
     if not s:
@@ -88,6 +101,15 @@ def _normalize_indian_phone(raw: str | None) -> str | None:
     if not re.match(r"^\+91[6-9]\d{9}$", normalized):
         return None
     return normalized
+
+
+def _normalize_email(raw: str | None) -> str | None:
+    email = str(raw or "").strip().strip(".,;:()[]{}<>\"'")
+    if not email or "@" not in email:
+        return None
+    if not re.match(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$", email):
+        return None
+    return email.lower()
 
 
 def _extract_name(text: str, fallback: str | None = None) -> str | None:
@@ -212,6 +234,160 @@ def _call_vapi(phone_number: str, candidate_name: str, role_name: str) -> dict[s
         except Exception as e:
             print(f"[Vapi] Unexpected call error for '{candidate_name or 'Candidate'}': {e}")
             raise
+
+
+def _send_round1_email(
+    candidate_name: str,
+    candidate_email: str,
+    role_name: str,
+    company_name: str,
+    shortlist_reason: str | None = None,
+) -> dict[str, Any]:
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_port_raw = os.getenv("SMTP_PORT", "587").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM_EMAIL", "").strip() or smtp_user
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
+
+    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
+        raise HTTPException(
+            status_code=500,
+            detail="SMTP credentials missing. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL in Backend/.env",
+        )
+
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail="SMTP_PORT must be a valid integer") from exc
+
+    subject = f"Selected for Round 1 - {role_name or 'HireMind AI'}"
+    body = (
+        f"Hi {candidate_name or 'Candidate'},\n\n"
+        f"Congratulations! You have been selected for Round 1 for {role_name or 'the role'} at {company_name or 'HireMind AI'}.\n\n"
+        f"Reason for shortlisting: {shortlist_reason or 'As per evaluation criteria'}.\n\n"
+        "Our team will share the next steps shortly.\n\n"
+        "Best regards,\n"
+        f"{company_name or 'HireMind AI'}"
+    )
+
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = smtp_from
+    message["To"] = candidate_email
+    message.set_content(body)
+
+    def _send_via_sendgrid_api(api_key: str) -> dict[str, Any]:
+        payload = {
+            "personalizations": [{"to": [{"email": candidate_email, "name": candidate_name or "Candidate"}]}],
+            "from": {"email": smtp_from, "name": company_name or "HireMind AI"},
+            "subject": subject,
+            "content": [{"type": "text/plain", "value": body}],
+        }
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.post(
+                "https://api.sendgrid.com/v3/mail/send",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise HTTPException(
+                    status_code=exc.response.status_code,
+                    detail=f"SendGrid API send failed: {_stringify_reason(exc.response.text)}",
+                ) from exc
+        return {"status": resp.status_code, "response": "sent via SendGrid API"}
+
+    context = ssl.create_default_context()
+    ports_to_try: list[int] = [smtp_port]
+    if smtp_port == 587:
+        ports_to_try.append(2525)
+    if smtp_port == 2525:
+        ports_to_try.append(587)
+
+    last_error: Exception | None = None
+    for port in ports_to_try:
+        try:
+            if port == 465 and smtp_use_tls:
+                with smtplib.SMTP_SSL(smtp_host, port, timeout=30, context=context) as server:
+                    server.login(smtp_user, smtp_password)
+                    server.send_message(message)
+            else:
+                with smtplib.SMTP(smtp_host, port, timeout=30) as server:
+                    if smtp_use_tls:
+                        server.starttls(context=context)
+                    server.login(smtp_user, smtp_password)
+                    server.send_message(message)
+            return {"status": 250, "response": f"sent via {smtp_host}:{port}"}
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    # Fallback for environments where outbound SMTP is blocked (common on some ISPs/cloud plans).
+    sendgrid_api_key = os.getenv("SENDGRID_API_KEY", "").strip() or smtp_password
+    if "sendgrid" in smtp_host.lower() and sendgrid_api_key:
+        return _send_via_sendgrid_api(sendgrid_api_key)
+
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            f"SMTP send failed for host {smtp_host} on ports {ports_to_try}: "
+            f"{_stringify_reason(str(last_error) if last_error else 'unknown error')}"
+        ),
+    )
+
+
+def _process_round1_email_notifications_from_csv(text: str, role_name: str = "Round 1") -> dict[str, Any]:
+    reader = csv.DictReader(io.StringIO(text))
+
+    fieldnames = [str(x).strip().lower() for x in (reader.fieldnames or [])]
+    required_headers = {"name", "phone number", "email", "reason for shortlisting"}
+    missing_headers = [h for h in required_headers if h not in fieldnames]
+    if missing_headers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV must contain columns: Name, Phone Number, Email, Reason for shortlisting. Missing: {', '.join(missing_headers)}",
+        )
+
+    sent = 0
+    skipped = 0
+    failed = 0
+    details: list[dict[str, Any]] = []
+
+    for row in reader:
+        name = str(row.get("Name") or row.get("name") or "").strip() or "Candidate"
+        raw_email = str(
+            row.get("Email")
+            or row.get("email")
+            or ""
+        ).strip()
+        shortlist_reason = str(
+            row.get("Reason for shortlisting")
+            or row.get("reason for shortlisting")
+            or ""
+        ).strip()
+        email = _normalize_email(raw_email)
+
+        if not email:
+            skipped += 1
+            details.append({"name": name, "email": raw_email, "status": "skipped", "reason": f"invalid email: {raw_email or 'missing'}"})
+            continue
+
+        try:
+            email_result = _send_round1_email(name, email, role_name, "HireMind AI", shortlist_reason=shortlist_reason)
+            sent += 1
+            details.append({"name": name, "email": email, "status": "sent", "smtpStatus": email_result.get("status"), "reason": shortlist_reason})
+            time.sleep(1.1)
+        except Exception as e:
+            failed += 1
+            reason = e.detail if isinstance(e, HTTPException) else str(e)
+            details.append({"name": name, "email": email, "status": "failed", "reason": _stringify_reason(reason), "shortlistReason": shortlist_reason})
+
+    return {"success": True, "sent": sent, "skipped": skipped, "failed": failed, "details": details}
 
 
 def _parse_claude_json(raw: str) -> dict[str, Any]:
@@ -407,11 +583,13 @@ async def round0_upload_resumes(
         text = _extract_resume_text_from_bytes(data, filename, settings)
         inferred_name = Path(filename).stem.replace("_", " ").replace("-", " ").strip()
         profile_name = _extract_name(text, inferred_name)
+        profile_email = _extract_email(text)
         mobile = _extract_phone(text)
 
         row = Round0Candidate(
             job_id=job.id,
             name=profile_name,
+            email=profile_email,
             mobile_number=mobile,
             resume_path=str(stored),
             resume_hash=resume_hash,
@@ -422,6 +600,7 @@ async def round0_upload_resumes(
         created.append({
             "id": str(row.id),
             "name": row.name,
+            "email": row.email,
             "mobileNumber": row.mobile_number,
             "resumeUrl": str(stored),
         })
@@ -503,6 +682,7 @@ def round0_shortlist(
             payload_row = {
                 "candidateId": str(cand.id),
                 "name": cand.name,
+                "email": cand.email,
                 "mobileNumber": cand.mobile_number,
                 "resumeUrl": cand.resume_path,
                 "evaluation": {
@@ -520,6 +700,7 @@ def round0_shortlist(
             rejected.append({
                 "candidateId": str(cand.id),
                 "name": cand.name,
+                "email": cand.email,
                 "mobileNumber": cand.mobile_number,
                 "resumeUrl": cand.resume_path,
                 "evaluation": {
@@ -550,9 +731,9 @@ def round0_shortlisted_csv(job_id: int, db: Session = Depends(get_db), current_u
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Name", "Mobile Number", "Reason"])
+    writer.writerow(["Name", "Email", "Phone Number", "Reason"])
     for ev, cand in rows:
-        writer.writerow([cand.name or cand.id, cand.mobile_number or "", ev.reason or ""])
+        writer.writerow([cand.name or cand.id, cand.email or "", cand.mobile_number or "", ev.reason or ""])
 
     data = io.BytesIO(output.getvalue().encode("utf-8"))
     headers = {"Content-Disposition": f"attachment; filename=shortlisted_{job_id}.csv"}
@@ -635,6 +816,7 @@ async def round0_upload_csv_and_call(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_company),
 ):
+    print("🔵 [BACKEND] /caller/upload-csv-and-call endpoint triggered - ONLY CALLS")
     _ = current_user
 
     content = await file.read()
@@ -642,9 +824,13 @@ async def round0_upload_csv_and_call(
     reader = csv.DictReader(io.StringIO(text))
 
     fieldnames = [str(x).strip().lower() for x in (reader.fieldnames or [])]
-    phone_headers = {"phone", "mobile number", "mobile", "number", "contact", "phone number"}
-    if not any(h in fieldnames for h in phone_headers):
-        raise HTTPException(status_code=400, detail="CSV must contain a phone column (phone/mobile number)")
+    required_headers = {"name", "phone number", "email", "reason for shortlisting"}
+    missing_headers = [h for h in required_headers if h not in fieldnames]
+    if missing_headers:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CSV must contain columns: Name, Phone Number, Email, Reason for shortlisting. Missing: {', '.join(missing_headers)}",
+        )
 
     called = 0
     skipped = 0
@@ -652,18 +838,15 @@ async def round0_upload_csv_and_call(
     details: list[dict[str, Any]] = []
 
     for row in reader:
-        name = str(row.get("name") or row.get("Name") or row.get("candidate name") or row.get("Candidate Name") or "").strip() or "Candidate"
+        name = str(row.get("Name") or row.get("name") or "").strip() or "Candidate"
+        shortlist_reason = str(
+            row.get("Reason for shortlisting")
+            or row.get("reason for shortlisting")
+            or ""
+        ).strip()
         raw_mobile = str(
-            row.get("phone")
-            or row.get("Phone")
-            or row.get("mobile number")
-            or row.get("Mobile Number")
-            or row.get("mobile")
-            or row.get("Mobile")
+            row.get("Phone Number")
             or row.get("phone number")
-            or row.get("Phone Number")
-            or row.get("number")
-            or row.get("Number")
             or ""
         ).strip()
         mobile = _normalize_indian_phone(raw_mobile)
@@ -694,6 +877,7 @@ async def round0_upload_csv_and_call(
                 "vapiCallId": call_id,
                 "availabilityDate": availability,
                 "notes": summary,
+                "reason": shortlist_reason,
             })
         except Exception as e:
             failed += 1
@@ -701,6 +885,19 @@ async def round0_upload_csv_and_call(
             details.append({"name": name, "mobileNumber": mobile, "status": "failed", "reason": _stringify_reason(reason)})
 
     return {"success": True, "called": called, "skipped": skipped, "failed": failed, "details": details}
+
+
+@router.post("/caller/upload-csv-and-email")
+async def round0_upload_csv_and_email(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_company),
+):
+    print("🟢 [BACKEND] /caller/upload-csv-and-email endpoint triggered - ONLY EMAILS")
+    _ = current_user
+
+    content = await file.read()
+    text = content.decode("utf-8-sig", errors="ignore")
+    return _process_round1_email_notifications_from_csv(text, role_name="Round 1")
 
 
 @router.get("/caller/report/{job_id}/csv")
@@ -720,7 +917,7 @@ def round0_caller_report_csv(job_id: int, db: Session = Depends(get_db), current
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Name", "Mobile Number", "Call Status", "Availability Date", "Notes"])
+    writer.writerow(["Name", "Phone Number", "Call Status", "Availability Date", "Notes"])
     for report, cand in reports:
         writer.writerow([
             cand.name or cand.id,

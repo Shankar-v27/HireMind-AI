@@ -164,10 +164,10 @@ export default function LandingPage() {
                 Join companies that are hiring smarter and faster with AI-driven assessments.
               </p>
               <Link
-                href="/login"
+                href="/pricing"
                 className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-black transition hover:bg-zinc-200"
               >
-                Get Started Now
+                Price Plan
                 <span aria-hidden>→</span>
               </Link>
             </div>

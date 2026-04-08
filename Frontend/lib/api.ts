@@ -406,6 +406,23 @@ export const shortlistApi = {
       }>;
     }>("/caller/upload-csv-and-call", form, { headers: { "Content-Type": "multipart/form-data" } });
   },
+  uploadCsvAndEmail: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return shortlistApiClient.post<{
+      success: boolean;
+      sent: number;
+      skipped: number;
+      failed: number;
+      details: Array<{
+        name?: string;
+        email?: string;
+        status: string;
+        reason?: string;
+        smtpStatus?: number;
+      }>;
+    }>("/caller/upload-csv-and-email", form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
 };
 
 export default api;

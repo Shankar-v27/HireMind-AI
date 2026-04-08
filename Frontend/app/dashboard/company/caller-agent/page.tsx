@@ -5,12 +5,14 @@ import { getApiErrorMessage, shortlistApi } from "@/lib/api";
 
 type CallDetail = {
   name?: string;
+  email?: string;
   mobileNumber?: string;
   status: string;
   availabilityDate?: string;
   notes?: unknown;
   reason?: unknown;
   vapiCallId?: string;
+  emailStatus?: { status: string; reason?: string; smtpStatus?: number; email?: string };
 };
 
 function toText(value: unknown): string {
@@ -25,7 +27,7 @@ function toText(value: unknown): string {
 
 export default function CallerAgentPage() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<"call" | "email" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [details, setDetails] = useState<CallDetail[]>([]);
 
@@ -38,13 +40,14 @@ export default function CallerAgentPage() {
   }, [details]);
 
   async function handleRunCalls() {
+    if (activeAction) return;
     setError(null);
     if (!csvFile) {
       setError("Please upload a CSV file first.");
       return;
     }
 
-    setLoading(true);
+    setActiveAction("call");
     try {
       const res = await shortlistApi.uploadCsvAndCall(csvFile);
       const normalized = (res.data?.details ?? []).map((d) => ({
@@ -60,7 +63,34 @@ export default function CallerAgentPage() {
           getApiErrorMessage(axErr?.response?.data?.detail, axErr?.message || "Failed to trigger caller agent.")
       );
     } finally {
-      setLoading(false);
+      setActiveAction(null);
+    }
+  }
+
+  async function handleSendRound1Emails() {
+    if (activeAction) return;
+    setError(null);
+    if (!csvFile) {
+      setError("Please upload a CSV file first.");
+      return;
+    }
+
+    setActiveAction("email");
+    try {
+      const res = await shortlistApi.uploadCsvAndEmail(csvFile);
+      const normalized = (res.data?.details ?? []).map((d) => ({
+        ...d,
+        reason: toText(d.reason),
+      }));
+      setDetails(normalized);
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { detail?: unknown; message?: string } }; message?: string };
+      setError(
+        (typeof axErr?.response?.data?.message === "string" && axErr.response.data.message) ||
+          getApiErrorMessage(axErr?.response?.data?.detail, axErr?.message || "Failed to send round 1 emails.")
+      );
+    } finally {
+      setActiveAction(null);
     }
   }
 
@@ -68,7 +98,7 @@ export default function CallerAgentPage() {
     if (!details.length) return;
 
     const rows = [
-      ["Name", "Mobile Number", "Call Status", "Availability Date", "Notes"],
+      ["Name", "Phone Number", "Call Status", "Availability Date", "Notes"],
       ...details.map((d) => [
         d.name || "",
         d.mobileNumber || "",
@@ -98,7 +128,7 @@ export default function CallerAgentPage() {
       <div className="mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
         <h1 className="text-2xl font-bold text-white">Caller Agent</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Upload shortlisted CSV and trigger Vapi calls to candidates. CSV should include Name and Mobile Number columns.
+          Upload shortlisted CSV. <strong>CSV must include columns:</strong> Name, Phone Number, Email, Reason for shortlisting
         </p>
 
         <div className="mt-5 space-y-3">
@@ -113,10 +143,19 @@ export default function CallerAgentPage() {
             <button
               type="button"
               onClick={handleRunCalls}
-              disabled={loading}
+              disabled={activeAction !== null}
               className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Calling..." : "Run Caller Agent"}
+              {activeAction === "call" ? "Calling..." : "Run Caller Agent"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSendRound1Emails}
+              disabled={activeAction !== null}
+              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {activeAction === "email" ? "Sending..." : "Send Round 1 Emails"}
             </button>
 
             <button
@@ -144,7 +183,14 @@ export default function CallerAgentPage() {
               <div key={`${d.mobileNumber || "n"}-${idx}`} className="rounded-lg border border-slate-700 bg-slate-950 p-3">
                 <p className="text-sm font-medium text-white">{d.name || "Candidate"}</p>
                 <p className="text-xs text-slate-400">{d.mobileNumber || "No number"}</p>
+                {d.email && <p className="text-xs text-slate-400">{d.email}</p>}
                 <p className="mt-1 text-xs text-slate-300">Status: {d.status}</p>
+                {d.emailStatus && (
+                  <p className="text-xs text-emerald-300">
+                    Email: {d.emailStatus.status}
+                    {d.emailStatus.reason ? ` - ${d.emailStatus.reason}` : ""}
+                  </p>
+                )}
                 {d.availabilityDate && <p className="text-xs text-emerald-300">Availability: {d.availabilityDate}</p>}
                 {Boolean(d.notes || d.reason) && <p className="mt-1 text-xs text-slate-300">{toText(d.notes || d.reason)}</p>}
               </div>

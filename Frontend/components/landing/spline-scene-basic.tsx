@@ -26,10 +26,10 @@ export function SplineSceneBasic() {
             <span aria-hidden>→</span>
           </Link>
           <Link
-            href="#how-it-works"
+            href="/pricing"
             className="inline-flex items-center rounded-lg border border-white/20 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-white/10"
           >
-            View Architecture
+            Pricing Plan
           </Link>
         </div>
       </div>

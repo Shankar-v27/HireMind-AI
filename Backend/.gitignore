@@ -5,3 +5,5 @@ __pycache__/
 .env
 *.egg-info/
 .eggs/
+.shanks/
+dist/

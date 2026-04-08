@@ -2,11 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+import threading
+import time
+
 from app.db.session import get_db
 from app.models.core import Candidate, ProctoringEvent, Round, Strike, Verification
 from app.models.user import User
 from app.routers.auth import get_current_candidate
 from app.services.claude_vision import analyze_proctor_frame, face_match
+
+
+_identity_cache_lock = threading.Lock()
+# candidate_id -> (checked_at_monotonic, match, confidence)
+_identity_cache: dict[int, tuple[float, bool | None, float | None]] = {}
 
 
 router = APIRouter(prefix="/proctoring", tags=["proctoring"])
@@ -123,9 +131,27 @@ def analyze_frame(
     identity_match = None
     identity_confidence = None
     if reference_photo and result["face_visible"]:
-        match_result = face_match(reference_photo, payload.image_base64)
-        identity_match = match_result.get("match")
-        identity_confidence = match_result.get("confidence")
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        interval_s = float(getattr(settings, "proctoring_identity_interval_s", 15.0) or 15.0)
+        now = time.monotonic()
+
+        cached: tuple[float, bool | None, float | None] | None = None
+        if candidate is not None and interval_s > 0:
+            with _identity_cache_lock:
+                cached = _identity_cache.get(candidate.id)
+
+        if cached is not None and interval_s > 0 and (now - cached[0]) < interval_s:
+            identity_match = cached[1]
+            identity_confidence = cached[2]
+        else:
+            match_result = face_match(reference_photo, payload.image_base64)
+            identity_match = match_result.get("match")
+            identity_confidence = match_result.get("confidence")
+            if candidate is not None and interval_s > 0:
+                with _identity_cache_lock:
+                    _identity_cache[candidate.id] = (now, identity_match, identity_confidence)
     return {
         "face_visible": result["face_visible"],
         "phone_detected": result["phone_detected"],

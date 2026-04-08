@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 import os
 import json
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -53,6 +54,26 @@ def _build_cors_origins() -> list[str]:
     return merged
 
 
+def _get_int_env(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return int(str(raw).strip())
+    except Exception:
+        return default
+
+
+def _get_float_env(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    try:
+        return float(str(raw).strip())
+    except Exception:
+        return default
+
+
 class Settings(BaseModel):
     app_name: str = "AI-Driven Hiring Platform API"
     environment: str = os.getenv("ENVIRONMENT", "development")
@@ -73,6 +94,23 @@ class Settings(BaseModel):
     # Plagiarism / AI detection (e.g. Claude API for code analysis). Set when key is provided.
     claude_api_key: str = os.getenv("CLAUDE_API_KEY", "")
     claude_model: str = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-latest")
+
+    # Claude API resiliency / throttling
+    # Retry for transient errors like 429/529 (rate limit / overloaded)
+    claude_max_retries: int = _get_int_env("CLAUDE_MAX_RETRIES", 4)
+    claude_backoff_initial_s: float = _get_float_env("CLAUDE_BACKOFF_INITIAL_S", 0.6)
+    claude_backoff_max_s: float = _get_float_env("CLAUDE_BACKOFF_MAX_S", 8.0)
+
+    # In-process request shaping to avoid bursts (helps prevent 529/429).
+    # - concurrency: max in-flight Claude calls per API process
+    # - rps: global requests-per-second cap per API process (0 disables)
+    claude_max_concurrency: int = max(1, _get_int_env("CLAUDE_MAX_CONCURRENCY", 2))
+    claude_rps: float = max(0.0, _get_float_env("CLAUDE_RPS", 3.0))
+    claude_acquire_timeout_s: float = max(0.0, _get_float_env("CLAUDE_ACQUIRE_TIMEOUT_S", 10.0))
+
+    # Proctoring tuning
+    # Face match is expensive; cache/cooldown results per candidate.
+    proctoring_identity_interval_s: float = max(0.0, _get_float_env("PROCTORING_IDENTITY_INTERVAL_S", 15.0))
     plagiarism_api_key: str = os.getenv("PLAGIARISM_API_KEY", "")  # alternative
     jaas_app_id: str = os.getenv("JAAS_APP_ID", "")
     jaas_api_key_id: str = os.getenv("JAAS_API_KEY_ID", "")

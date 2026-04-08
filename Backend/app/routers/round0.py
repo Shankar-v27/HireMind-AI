@@ -9,6 +9,7 @@ import os
 import re
 import ssl
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
@@ -341,6 +342,216 @@ def _send_round1_email(
     )
 
 
+def _send_round1_emails_smtp_batch(rows: list[dict[str, str]], role_name: str, company_name: str) -> dict[str, Any]:
+    """Send many Round 1 emails efficiently using a single SMTP connection when possible."""
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_port_raw = os.getenv("SMTP_PORT", "587").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
+    smtp_password = os.getenv("SMTP_PASSWORD", "").strip()
+    smtp_from = os.getenv("SMTP_FROM_EMAIL", "").strip() or smtp_user
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").strip().lower() not in {"0", "false", "no"}
+
+    if not smtp_host or not smtp_user or not smtp_password or not smtp_from:
+        raise HTTPException(
+            status_code=500,
+            detail="SMTP credentials missing. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, and SMTP_FROM_EMAIL in Backend/.env",
+        )
+
+    try:
+        smtp_port = int(smtp_port_raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail="SMTP_PORT must be a valid integer") from exc
+
+    subject = f"Selected for Round 1 - {role_name or 'HireMind AI'}"
+    context = ssl.create_default_context()
+
+    ports_to_try: list[int] = [smtp_port]
+    if smtp_port == 587:
+        ports_to_try.append(2525)
+    if smtp_port == 2525:
+        ports_to_try.append(587)
+
+    sent = 0
+    failed = 0
+    details: list[dict[str, Any]] = []
+
+    last_error: Exception | None = None
+    for port in ports_to_try:
+        try:
+            if port == 465 and smtp_use_tls:
+                server = smtplib.SMTP_SSL(smtp_host, port, timeout=30, context=context)
+            else:
+                server = smtplib.SMTP(smtp_host, port, timeout=30)
+            with server:
+                if port != 465 and smtp_use_tls:
+                    server.starttls(context=context)
+                server.login(smtp_user, smtp_password)
+
+                for r in rows:
+                    candidate_name = r.get("name") or "Candidate"
+                    candidate_email = r.get("email") or ""
+                    shortlist_reason = r.get("shortlist_reason") or ""
+
+                    body = (
+                        f"Hi {candidate_name or 'Candidate'},\n\n"
+                        f"Congratulations! You have been selected for Round 1 for {role_name or 'the role'} at {company_name or 'HireMind AI'}.\n\n"
+                        f"Reason for shortlisting: {shortlist_reason or 'As per evaluation criteria'}.\n\n"
+                        "Our team will share the next steps shortly.\n\n"
+                        "Best regards,\n"
+                        f"{company_name or 'HireMind AI'}"
+                    )
+
+                    message = EmailMessage()
+                    message["Subject"] = subject
+                    message["From"] = smtp_from
+                    message["To"] = candidate_email
+                    message.set_content(body)
+
+                    try:
+                        server.send_message(message)
+                        sent += 1
+                        details.append({"name": candidate_name, "email": candidate_email, "status": "sent", "smtpStatus": 250, "reason": shortlist_reason})
+                    except Exception as exc:
+                        failed += 1
+                        details.append({"name": candidate_name, "email": candidate_email, "status": "failed", "reason": _stringify_reason(str(exc)), "shortlistReason": shortlist_reason})
+
+            return {"success": True, "sent": sent, "failed": failed, "details": details, "transport": f"smtp:{smtp_host}:{port}"}
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    raise HTTPException(
+        status_code=502,
+        detail=(
+            f"SMTP batch send failed for host {smtp_host} on ports {ports_to_try}: "
+            f"{_stringify_reason(str(last_error) if last_error else 'unknown error')}"
+        ),
+    )
+
+
+def _send_round1_emails_sendgrid_batch(rows: list[dict[str, str]], role_name: str, company_name: str) -> dict[str, Any]:
+    """Send many Round 1 emails using SendGrid API in one request.
+
+    Note: SendGrid returns 202 Accepted without per-recipient status; we record each row as 'sent'
+    if the request is accepted.
+    """
+    api_key = os.getenv("SENDGRID_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="SENDGRID_API_KEY missing")
+
+    smtp_from = os.getenv("SMTP_FROM_EMAIL", "").strip() or os.getenv("SMTP_USER", "").strip()
+    if not smtp_from:
+        raise HTTPException(status_code=500, detail="SMTP_FROM_EMAIL (or SMTP_USER) must be set for SendGrid")
+
+    subject = f"Selected for Round 1 - {role_name or 'HireMind AI'}"
+
+    # SendGrid supports multiple personalizations in one request.
+    personalizations: list[dict[str, Any]] = []
+    details: list[dict[str, Any]] = []
+    for r in rows:
+        candidate_name = r.get("name") or "Candidate"
+        candidate_email = r.get("email") or ""
+        shortlist_reason = r.get("shortlist_reason") or ""
+        body = (
+            f"Hi {candidate_name or 'Candidate'},\n\n"
+            f"Congratulations! You have been selected for Round 1 for {role_name or 'the role'} at {company_name or 'HireMind AI'}.\n\n"
+            f"Reason for shortlisting: {shortlist_reason or 'As per evaluation criteria'}.\n\n"
+            "Our team will share the next steps shortly.\n\n"
+            "Best regards,\n"
+            f"{company_name or 'HireMind AI'}"
+        )
+        personalizations.append(
+            {
+                "to": [{"email": candidate_email, "name": candidate_name}],
+                "subject": subject,
+            }
+        )
+        details.append(
+            {
+                "name": candidate_name,
+                "email": candidate_email,
+                "status": "sent",
+                "smtpStatus": 202,
+                "reason": shortlist_reason,
+            }
+        )
+
+    payload = {
+        "personalizations": personalizations,
+        "from": {"email": smtp_from, "name": company_name or "HireMind AI"},
+        "content": [{"type": "text/plain", "value": details and "" or ""}],
+    }
+
+    # SendGrid requires content.value, but content is global. We use a generic template and put
+    # the per-user reason in the single-email body via dynamic templates normally; since this project
+    # uses plain text, we fall back to one request per email if reasons differ.
+    # For <=5 emails, this is still fast and more correct.
+    reasons = {str(r.get("shortlist_reason") or "") for r in rows}
+    if len(reasons) > 1:
+        # Per-email requests with shared client
+        sent = 0
+        failed = 0
+        out_details: list[dict[str, Any]] = []
+        with httpx.Client(timeout=30.0) as client:
+            for r in rows:
+                candidate_name = r.get("name") or "Candidate"
+                candidate_email = r.get("email") or ""
+                shortlist_reason = r.get("shortlist_reason") or ""
+                body = (
+                    f"Hi {candidate_name or 'Candidate'},\n\n"
+                    f"Congratulations! You have been selected for Round 1 for {role_name or 'the role'} at {company_name or 'HireMind AI'}.\n\n"
+                    f"Reason for shortlisting: {shortlist_reason or 'As per evaluation criteria'}.\n\n"
+                    "Our team will share the next steps shortly.\n\n"
+                    "Best regards,\n"
+                    f"{company_name or 'HireMind AI'}"
+                )
+                one_payload = {
+                    "personalizations": [{"to": [{"email": candidate_email, "name": candidate_name}]}],
+                    "from": {"email": smtp_from, "name": company_name or "HireMind AI"},
+                    "subject": subject,
+                    "content": [{"type": "text/plain", "value": body}],
+                }
+                try:
+                    resp = client.post(
+                        "https://api.sendgrid.com/v3/mail/send",
+                        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                        json=one_payload,
+                    )
+                    resp.raise_for_status()
+                    sent += 1
+                    out_details.append({"name": candidate_name, "email": candidate_email, "status": "sent", "smtpStatus": resp.status_code, "reason": shortlist_reason})
+                except Exception as exc:
+                    failed += 1
+                    out_details.append({"name": candidate_name, "email": candidate_email, "status": "failed", "reason": _stringify_reason(str(exc)), "shortlistReason": shortlist_reason})
+        return {"success": True, "sent": sent, "failed": failed, "details": out_details, "transport": "sendgrid"}
+
+    # Single shared body for all (same reason)
+    shared_reason = next(iter(reasons), "")
+    body = (
+        "Hi Candidate,\n\n"
+        f"Congratulations! You have been selected for Round 1 for {role_name or 'the role'} at {company_name or 'HireMind AI'}.\n\n"
+        f"Reason for shortlisting: {shared_reason or 'As per evaluation criteria'}.\n\n"
+        "Our team will share the next steps shortly.\n\n"
+        "Best regards,\n"
+        f"{company_name or 'HireMind AI'}"
+    )
+    payload["subject"] = subject
+    payload["content"] = [{"type": "text/plain", "value": body}]
+
+    with httpx.Client(timeout=30.0) as client:
+        resp = client.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail=f"SendGrid API send failed: {_stringify_reason(exc.response.text)}") from exc
+
+    return {"success": True, "sent": len(rows), "failed": 0, "details": details, "transport": "sendgrid"}
+
+
 def _process_round1_email_notifications_from_csv(text: str, role_name: str = "Round 1") -> dict[str, Any]:
     reader = csv.DictReader(io.StringIO(text))
 
@@ -353,10 +564,9 @@ def _process_round1_email_notifications_from_csv(text: str, role_name: str = "Ro
             detail=f"CSV must contain columns: Name, Phone Number, Email, Reason for shortlisting. Missing: {', '.join(missing_headers)}",
         )
 
-    sent = 0
     skipped = 0
-    failed = 0
     details: list[dict[str, Any]] = []
+    send_rows: list[dict[str, str]] = []
 
     for row in reader:
         name = str(row.get("Name") or row.get("name") or "").strip() or "Candidate"
@@ -377,15 +587,36 @@ def _process_round1_email_notifications_from_csv(text: str, role_name: str = "Ro
             details.append({"name": name, "email": raw_email, "status": "skipped", "reason": f"invalid email: {raw_email or 'missing'}"})
             continue
 
+        send_rows.append({"name": name, "email": email, "shortlist_reason": shortlist_reason})
+
+    # Prefer SendGrid API (fast, reliable) when configured; else SMTP batch mode.
+    sent = 0
+    failed = 0
+    if send_rows:
         try:
-            email_result = _send_round1_email(name, email, role_name, "HireMind AI", shortlist_reason=shortlist_reason)
-            sent += 1
-            details.append({"name": name, "email": email, "status": "sent", "smtpStatus": email_result.get("status"), "reason": shortlist_reason})
-            time.sleep(1.1)
-        except Exception as e:
-            failed += 1
-            reason = e.detail if isinstance(e, HTTPException) else str(e)
-            details.append({"name": name, "email": email, "status": "failed", "reason": _stringify_reason(reason), "shortlistReason": shortlist_reason})
+            if os.getenv("SENDGRID_API_KEY", "").strip():
+                batch = _send_round1_emails_sendgrid_batch(send_rows, role_name=role_name, company_name="HireMind AI")
+            else:
+                batch = _send_round1_emails_smtp_batch(send_rows, role_name=role_name, company_name="HireMind AI")
+            sent += int(batch.get("sent") or 0)
+            failed += int(batch.get("failed") or 0)
+            details.extend(batch.get("details") or [])
+        except Exception:
+            for r in send_rows:
+                try:
+                    email_result = _send_round1_email(
+                        r.get("name") or "Candidate",
+                        r.get("email") or "",
+                        role_name,
+                        "HireMind AI",
+                        shortlist_reason=r.get("shortlist_reason"),
+                    )
+                    sent += 1
+                    details.append({"name": r.get("name"), "email": r.get("email"), "status": "sent", "smtpStatus": email_result.get("status"), "reason": r.get("shortlist_reason")})
+                except Exception as e:
+                    failed += 1
+                    reason = e.detail if isinstance(e, HTTPException) else str(e)
+                    details.append({"name": r.get("name"), "email": r.get("email"), "status": "failed", "reason": _stringify_reason(reason), "shortlistReason": r.get("shortlist_reason")})
 
     return {"success": True, "sent": sent, "skipped": skipped, "failed": failed, "details": details}
 
@@ -488,6 +719,7 @@ def _is_retryable_claude_error(err: Exception) -> bool:
 
 def _evaluate_with_claude(job_title: str, job_description: str, resume_text: str, settings) -> dict[str, Any]:
     import anthropic
+    from app.services.claude_vision import claude_messages_create
 
     if not settings.claude_api_key:
         raise HTTPException(status_code=500, detail="CLAUDE_API_KEY missing")
@@ -536,7 +768,9 @@ def _evaluate_with_claude(job_title: str, job_description: str, resume_text: str
     for model in models:
         for attempt in range(max_retries + 1):
             try:
-                res = client.messages.create(
+                res = claude_messages_create(
+                    client,
+                    purpose="round0_shortlist",
                     model=model,
                     max_tokens=max_tokens,
                     temperature=0,
@@ -687,35 +921,100 @@ def round0_shortlist(
     shortlisted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
 
-    for cand in candidates:
-        try:
-            cached = db.query(Round0EvalCache).filter(
-                Round0EvalCache.company_id == company.id,
-                Round0EvalCache.jd_fingerprint == job.jd_fingerprint,
-                Round0EvalCache.resume_hash == cand.resume_hash,
-            ).first()
+    # Phase 1: use cache immediately; prepare uncached candidates for parallel evaluation.
+    cached_results: dict[int, dict[str, Any]] = {}
+    to_eval: list[dict[str, Any]] = []
 
-            if cached:
-                eval_norm = _normalize_eval(cached.payload or {}, threshold)
-            else:
-                resume_text = (cand.resume_text or "").strip()
-                if not resume_text:
-                    resume_text = _extract_resume_text_from_bytes(Path(cand.resume_path).read_bytes(), Path(cand.resume_path).name, settings)
-                    cand.resume_text = resume_text
-                raw_eval = _evaluate_with_claude(job.title, job.description, resume_text, settings)
-                eval_norm = _normalize_eval(raw_eval, threshold)
+    for cand in candidates:
+        cached = db.query(Round0EvalCache).filter(
+            Round0EvalCache.company_id == company.id,
+            Round0EvalCache.jd_fingerprint == job.jd_fingerprint,
+            Round0EvalCache.resume_hash == cand.resume_hash,
+        ).first()
+
+        if cached:
+            cached_results[cand.id] = {
+                "raw_eval": cached.payload or {},
+                "eval_norm": _normalize_eval(cached.payload or {}, threshold),
+                "cand": cand,
+            }
+            continue
+
+        resume_text = (cand.resume_text or "").strip()
+        if not resume_text:
+            resume_text = _extract_resume_text_from_bytes(
+                Path(cand.resume_path).read_bytes(),
+                Path(cand.resume_path).name,
+                settings,
+            )
+            cand.resume_text = resume_text
+
+        to_eval.append(
+            {
+                "candidate_id": cand.id,
+                "resume_hash": cand.resume_hash,
+                "resume_text": resume_text,
+                "cand": cand,
+            }
+        )
+
+    # Phase 2: evaluate uncached resumes in parallel (max 5 workers).
+    max_workers = max(1, min(5, int(os.getenv("ROUND0_MAX_WORKERS", "5"))))
+    eval_results: dict[int, dict[str, Any]] = {}
+
+    if to_eval:
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(
+                    _evaluate_with_claude,
+                    job.title,
+                    job.description,
+                    item["resume_text"],
+                    settings,
+                ): item
+                for item in to_eval
+            }
+
+            for fut in as_completed(futures):
+                item = futures[fut]
+                cid = int(item["candidate_id"])
+                try:
+                    raw_eval = fut.result()
+                    eval_results[cid] = {
+                        "raw_eval": raw_eval,
+                        "eval_norm": _normalize_eval(raw_eval, threshold),
+                        "cand": item["cand"],
+                        "resume_hash": item["resume_hash"],
+                    }
+                except Exception as e:
+                    eval_results[cid] = {
+                        "error": e,
+                        "cand": item["cand"],
+                        "resume_hash": item["resume_hash"],
+                    }
+
+    # Phase 3: write evaluations + cache in one DB transaction.
+    all_results: dict[int, dict[str, Any]] = {**cached_results, **eval_results}
+
+    for cand in candidates:
+        cid = int(cand.id)
+        try:
+            res = all_results.get(cid) or {}
+            err = res.get("error")
+            if err is not None:
+                raise err
+
+            raw_eval = res.get("raw_eval") or {}
+            eval_norm = res.get("eval_norm") or _normalize_eval(raw_eval, threshold)
+
+            if cid not in cached_results:
                 cache_row = Round0EvalCache(
                     company_id=company.id,
                     jd_fingerprint=job.jd_fingerprint,
-                    resume_hash=cand.resume_hash,
+                    resume_hash=res.get("resume_hash") or cand.resume_hash,
                     payload=raw_eval,
                 )
                 db.add(cache_row)
-
-                # Small throttle helps avoid provider overload on bulk shortlist batches.
-                inter_req_delay_ms = max(0, int(os.getenv("CLAUDE_INTER_REQUEST_DELAY_MS", "250")))
-                if inter_req_delay_ms:
-                    time.sleep(inter_req_delay_ms / 1000.0)
 
             eval_row = db.query(Round0Evaluation).filter(
                 Round0Evaluation.job_id == job.id,
@@ -754,19 +1053,22 @@ def round0_shortlist(
                 shortlisted.append(payload_row)
             else:
                 rejected.append(payload_row)
+
         except Exception as e:
-            rejected.append({
-                "candidateId": str(cand.id),
-                "name": cand.name,
-                "email": cand.email,
-                "mobileNumber": cand.mobile_number,
-                "resumeUrl": cand.resume_path,
-                "evaluation": {
-                    "overall_score": 0,
-                    "decision": "rejected",
-                    "reason": f"Evaluation failed: {e}",
-                },
-            })
+            rejected.append(
+                {
+                    "candidateId": str(cand.id),
+                    "name": cand.name,
+                    "email": cand.email,
+                    "mobileNumber": cand.mobile_number,
+                    "resumeUrl": cand.resume_path,
+                    "evaluation": {
+                        "overall_score": 0,
+                        "decision": "rejected",
+                        "reason": f"Evaluation failed: {e}",
+                    },
+                }
+            )
 
     db.commit()
     return {"success": True, "shortlisted": shortlisted, "rejected": rejected}

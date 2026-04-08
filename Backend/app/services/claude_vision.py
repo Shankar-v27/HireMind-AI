@@ -10,10 +10,166 @@ Requires CLAUDE_API_KEY in environment. If not set, returns safe defaults (no pe
 from __future__ import annotations
 
 import base64
+import logging
+import random
 import re
+import threading
+import time
 from typing import Any
 
 from app.core.config import get_settings
+
+
+logger = logging.getLogger(__name__)
+
+
+_limit_lock = threading.Lock()
+_semaphore: threading.BoundedSemaphore | None = None
+_semaphore_size: int | None = None
+_next_allowed_time_s: float = 0.0
+
+
+def _ensure_limiters() -> None:
+    """Initialize (or reinitialize) in-process limiters based on current settings."""
+    global _semaphore, _semaphore_size
+    settings = get_settings()
+    target = max(1, int(getattr(settings, "claude_max_concurrency", 1) or 1))
+    with _limit_lock:
+        if _semaphore is None or _semaphore_size != target:
+            _semaphore = threading.BoundedSemaphore(target)
+            _semaphore_size = target
+
+
+def _throttle_rps() -> None:
+    """Global per-process requests-per-second throttle (0 disables)."""
+    global _next_allowed_time_s
+    settings = get_settings()
+    rps = float(getattr(settings, "claude_rps", 0.0) or 0.0)
+    if rps <= 0:
+        return
+
+    min_interval = 1.0 / rps
+
+    with _limit_lock:
+        now = time.monotonic()
+        wait_s = max(0.0, _next_allowed_time_s - now)
+        _next_allowed_time_s = max(_next_allowed_time_s, now) + min_interval
+
+    if wait_s > 0:
+        time.sleep(wait_s)
+
+
+def _is_retryable_claude_error(err: Exception) -> bool:
+    status_code = getattr(err, "status_code", None)
+    response = getattr(err, "response", None)
+    if status_code is None and response is not None:
+        status_code = getattr(response, "status_code", None)
+
+    if isinstance(status_code, int) and status_code in {408, 409, 425, 429, 500, 502, 503, 504, 529}:
+        return True
+
+    msg = str(err).lower()
+    retry_markers = (
+        "529",
+        "overloaded",
+        "rate limit",
+        "rate_limit",
+        "timeout",
+        "temporarily unavailable",
+        "internal server error",
+        "connection error",
+        "api_error",
+        "service unavailable",
+    )
+    return any(marker in msg for marker in retry_markers)
+
+
+def _get_retry_after_seconds(err: Exception) -> float | None:
+    """Try to extract server-provided retry delay from the exception/response headers."""
+    response = getattr(err, "response", None)
+    headers = None
+    if response is not None:
+        headers = getattr(response, "headers", None)
+
+    if not headers:
+        return None
+
+    try:
+        raw = headers.get("retry-after") or headers.get("Retry-After")
+        if raw is None:
+            return None
+        # retry-after can be seconds or an HTTP date; only handle seconds here.
+        seconds = float(str(raw).strip())
+        if seconds >= 0:
+            return seconds
+    except Exception:
+        return None
+    return None
+
+
+def _messages_create_with_retry(client: Any, *, purpose: str, **kwargs: Any) -> Any:
+    """Wrapper around client.messages.create with backoff + in-process throttling."""
+    settings = get_settings()
+    max_retries = max(0, int(getattr(settings, "claude_max_retries", 0) or 0))
+    backoff_initial = float(getattr(settings, "claude_backoff_initial_s", 0.6) or 0.6)
+    backoff_max = float(getattr(settings, "claude_backoff_max_s", 8.0) or 8.0)
+    acquire_timeout = float(getattr(settings, "claude_acquire_timeout_s", 10.0) or 10.0)
+
+    _ensure_limiters()
+    assert _semaphore is not None
+
+    last_err: Exception | None = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            acquired = _semaphore.acquire(timeout=acquire_timeout)
+            if not acquired:
+                raise TimeoutError(
+                    f"Timed out acquiring Claude semaphore after {acquire_timeout:.1f}s (purpose={purpose})"
+                )
+
+            try:
+                _throttle_rps()
+                return client.messages.create(**kwargs)
+            finally:
+                _semaphore.release()
+
+        except Exception as exc:
+            last_err = exc
+            if attempt >= max_retries or not _is_retryable_claude_error(exc):
+                raise
+
+            # Exponential backoff with jitter; respect Retry-After when present.
+            base = backoff_initial * (2 ** attempt)
+            delay_s = min(backoff_max, base)
+            jitter = random.uniform(0.0, max(0.0, delay_s * 0.25))
+            delay_s = delay_s + jitter
+            retry_after = _get_retry_after_seconds(exc)
+            if retry_after is not None:
+                delay_s = max(delay_s, retry_after)
+
+            logger.warning(
+                "Claude transient failure (purpose=%s) attempt=%s/%s; retrying in %.2fs. err=%s",
+                purpose,
+                attempt + 1,
+                max_retries + 1,
+                delay_s,
+                exc,
+            )
+            time.sleep(delay_s)
+
+    # Defensive: loop should have returned or raised.
+    if last_err is not None:
+        raise last_err
+    raise RuntimeError("Claude call failed without exception")
+
+
+def claude_messages_create(client: Any, *, purpose: str, **kwargs: Any) -> Any:
+    """Shared helper for Claude calls with retry/backoff + in-process throttling.
+
+    This is intentionally placed here so other modules can reuse one consistent policy.
+    """
+    return _messages_create_with_retry(client, purpose=purpose, **kwargs)
 
 
 def _strip_data_url(image_base64: str) -> tuple[str, str]:
@@ -33,7 +189,9 @@ def _call_claude_vision(image_base64: str, prompt: str, max_tokens: int = 300) -
         import anthropic
         client = anthropic.Anthropic(api_key=settings.claude_api_key)
         media_type, b64 = _strip_data_url(image_base64)
-        msg = client.messages.create(
+        msg = _messages_create_with_retry(
+            client,
+            purpose="vision_single",
             model=settings.claude_model,
             max_tokens=max_tokens,
             messages=[
@@ -55,8 +213,34 @@ def _call_claude_vision(image_base64: str, prompt: str, max_tokens: int = 300) -
         )
         if msg.content and len(msg.content) > 0:
             return msg.content[0].text
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Claude Vision call failed: %s", exc)
+    return None
+
+
+def _parse_confidence(raw: str | None) -> float | None:
+    if not raw:
+        return None
+    text = raw.strip()
+
+    # Prefer explicit percentage like 95%.
+    pct = re.search(r"(\d{1,3})\s*%", text)
+    if pct:
+        val = float(pct.group(1))
+        if 0 <= val <= 100:
+            return val / 100.0
+
+    # Look for a float in [0, 1] or a 0..100 integer.
+    nums = re.findall(r"(?<!\d)(?:0(?:\.\d+)?|1(?:\.0+)?|\d{1,3}(?:\.\d+)?)", text)
+    for n in nums:
+        try:
+            v = float(n)
+        except Exception:
+            continue
+        if 0.0 <= v <= 1.0:
+            return v
+        if 1.0 < v <= 100.0:
+            return v / 100.0
     return None
 
 
@@ -130,7 +314,9 @@ def face_match(id_proof_base64: str, live_photo_base64: str) -> dict[str, Any]:
         client = anthropic.Anthropic(api_key=settings.claude_api_key)
         id_media_type, id_b64 = _strip_data_url(id_proof_base64)
         photo_media_type, photo_b64 = _strip_data_url(live_photo_base64)
-        msg = client.messages.create(
+        msg = _messages_create_with_retry(
+            client,
+            purpose="face_match",
             model=settings.claude_model,
             max_tokens=200,
             messages=[
@@ -148,7 +334,11 @@ def face_match(id_proof_base64: str, live_photo_base64: str) -> dict[str, Any]:
                         },
                         {
                             "type": "text",
-                            "text": "Do the two images show the same person? Reply with one line: match_confidence: a number between 0 and 1 (e.g. 0.95 meaning 95% confident same person).",
+                            "text": (
+                                "Do the two images show the same person? Reply with ONE line only in this format:\n"
+                                "match_confidence: <number between 0 and 1>\n"
+                                "Example: match_confidence: 0.95"
+                            ),
                         },
                     ],
                 }
@@ -156,16 +346,13 @@ def face_match(id_proof_base64: str, live_photo_base64: str) -> dict[str, Any]:
         )
         raw = msg.content[0].text if msg.content else ""
         result["raw"] = raw
-        # Parse confidence from "match_confidence: 0.95" or similar
-        for line in raw.split("\n"):
-            if "match_confidence" in line.lower() or "confidence" in line.lower():
-                nums = re.findall(r"0?\.\d+|\d+\.\d+", line)
-                if nums:
-                    result["confidence"] = min(1.0, max(0.0, float(nums[0])))
-                    result["match"] = result["confidence"] >= 0.7
-                    break
-    except Exception:
-        pass
+        conf = _parse_confidence(raw)
+        if conf is not None:
+            result["confidence"] = min(1.0, max(0.0, conf))
+            result["match"] = result["confidence"] >= 0.7
+    except Exception as exc:
+        # Important: don't silently turn transient errors into "0%".
+        logger.warning("Face match failed: %s", exc)
     return result
 
 

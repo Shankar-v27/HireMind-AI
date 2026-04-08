@@ -6,6 +6,20 @@ body {
   @apply bg-black text-zinc-100;
 }
 
+.dark-native {
+  color-scheme: dark;
+}
+
+input.dark-native::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6) contrast(1.2) !important;
+  opacity: 0.95;
+}
+
+input.dark-native::-webkit-inner-spin-button,
+input.dark-native::-webkit-clear-button {
+  filter: invert(1) brightness(1.6) contrast(1.2) !important;
+}
+
 @keyframes landing-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }

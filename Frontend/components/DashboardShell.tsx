@@ -68,80 +68,77 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-zinc-500">
+      <div className="flex min-h-screen items-center justify-center bg-black text-zinc-400">
         Loading…
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-zinc-100">
-      <aside className="flex w-56 flex-col border-r border-white/10 bg-zinc-950">
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-black">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" />
-              <path d="M20 12a8 8 0 1 0-16 0 8 8 0 0 0 16 0Z" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
+    <div className="flex min-h-screen bg-black text-white">
+      <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col border-r border-white/20 bg-black">
+        <div className="flex items-center gap-3 border-b border-white/20 px-6 py-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-black font-bold">
+            H
           </div>
-          <span className="font-semibold text-white">{segment === "candidate" ? "HireMind AI" : "HIREMIND"}</span>
+          <span className="font-bold text-white text-lg">HireMind</span>
         </div>
-        <nav className="flex-1 space-y-0.5 p-3">
+        
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {segment === "company" ? (
             <>
               <Link
                 href="/dashboard/company"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   pathname === "/dashboard/company"
-                    ? "bg-zinc-100 text-black"
-                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10"
                 }`}
               >
-                <span>▦</span> Dashboard
+                <span className="text-base">▦</span> Dashboard
               </Link>
               <Link
                 href="/dashboard/company/interviews"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   pathname?.startsWith("/dashboard/company/interviews")
-                    ? "bg-zinc-100 text-black"
-                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10"
                 }`}
               >
-                <span>📋</span> Interviews
+                <span className="text-base">📋</span> Interviews
               </Link>
               <Link
                 href="/dashboard/company/caller-agent"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   pathname?.startsWith("/dashboard/company/caller-agent")
-                    ? "bg-zinc-100 text-black"
-                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10"
                 }`}
               >
-                <span>📞</span> Caller Agent
+                <span className="text-base">📞</span> Caller Agent
               </Link>
             </>
           ) : segment === "admin" ? (
             <>
               <Link
                 href="/dashboard/admin"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   pathname === "/dashboard/admin"
-                    ? "bg-zinc-100 text-black"
-                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10"
                 }`}
               >
-                <span>▦</span> Dashboard
+                <span className="text-base">▦</span> Dashboard
               </Link>
               <Link
                 href="/dashboard/admin/companies"
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
                   pathname?.startsWith("/dashboard/admin/companies")
-                    ? "bg-zinc-100 text-black"
-                    : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                    ? "bg-white text-black"
+                    : "text-zinc-300 hover:bg-white/10"
                 }`}
               >
-                <span>🏢</span> Companies
+                <span className="text-base">🏢</span> Companies
               </Link>
             </>
           ) : (
@@ -153,45 +150,38 @@ export default function DashboardShell({ children }: { children: React.ReactNode
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                    isActive ? "bg-zinc-100 text-black" : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all ${
+                    isActive ? "bg-white text-black" : "text-zinc-300 hover:bg-white/10"
                   }`}
                 >
-                  <span>{item.icon}</span> {item.label}
+                  <span className="text-base">{item.icon}</span> {item.label}
                 </Link>
               );
             })
           )}
         </nav>
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-2 rounded-lg px-2 py-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-sm font-medium text-white">
+        
+        <div className="border-t border-white/20 p-4">
+          <div className="flex items-center gap-3 rounded-lg px-3 py-3 mb-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black text-sm font-bold">
               {initial}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium text-white">{user?.email ?? "—"}</p>
-              {segment === "candidate" ? (
-                <span className="mt-0.5 inline-block rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-medium text-emerald-300">candidate</span>
-              ) : (
-                <p className="text-xs text-zinc-600">{roleLabel}</p>
-              )}
+              <p className="truncate text-sm font-medium text-white">{user?.email ?? "—"}</p>
+              <p className="text-xs text-zinc-400 mt-0.5">{roleLabel}</p>
             </div>
-            {segment === "candidate" && (
-              <svg className="h-4 w-4 shrink-0 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            )}
           </div>
           <button
             type="button"
             onClick={() => { clearToken(); window.location.href = "/"; }}
-            className="mt-2 w-full rounded-lg border border-white/10 px-2 py-1.5 text-xs text-zinc-500 hover:bg-zinc-900 hover:text-zinc-200"
+            className="w-full rounded-lg border border-white/30 px-3 py-2.5 text-xs font-medium text-white hover:bg-white/10 transition"
           >
             Sign out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto bg-black">
+      
+      <main className="flex-1 ml-64 overflow-auto bg-black">
         {children}
       </main>
     </div>

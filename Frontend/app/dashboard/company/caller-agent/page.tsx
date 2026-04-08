@@ -124,79 +124,130 @@ export default function CallerAgentPage() {
   }
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="mx-auto max-w-5xl rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <h1 className="text-2xl font-bold text-white">Caller Agent</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Upload shortlisted CSV. <strong>CSV must include columns:</strong> Name, Phone Number, Email, Reason for shortlisting
-        </p>
-
-        <div className="mt-5 space-y-3">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-md file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-500"
-          />
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleRunCalls}
-              disabled={activeAction !== null}
-              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {activeAction === "call" ? "Calling..." : "Run Caller Agent"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSendRound1Emails}
-              disabled={activeAction !== null}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {activeAction === "email" ? "Sending..." : "Send Round 1 Emails"}
-            </button>
-
-            <button
-              type="button"
-              onClick={downloadCallReportCsv}
-              disabled={!details.length}
-              className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Download Call Report CSV
-            </button>
+    <div className="min-h-screen bg-black p-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="rounded-2xl border border-white/20 bg-black p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-white">Caller Agent</h1>
+            <p className="mt-2 text-zinc-400">
+              Upload shortlisted CSV to trigger calls or send invitation emails. <br />
+              <strong>CSV must include columns:</strong> Name, Phone Number, Email, Reason for shortlisting
+            </p>
           </div>
 
-          {error && <p className="text-sm text-red-300">{error}</p>}
-        </div>
+          {/* File Upload & Actions */}
+          <div className="space-y-4 mb-8">
+            <div>
+              <label className="block text-sm font-medium text-white mb-3">Upload CSV File</label>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(e) => setCsvFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-white file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-black hover:file:bg-zinc-200"
+              />
+              {csvFile && (
+                <p className="mt-2 text-xs text-zinc-400">File: {csvFile.name}</p>
+              )}
+            </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border border-slate-700 bg-slate-950 p-4 text-sm text-white">Called: {stats.called}</div>
-          <div className="rounded-lg border border-slate-700 bg-slate-950 p-4 text-sm text-white">Failed: {stats.failed}</div>
-          <div className="rounded-lg border border-slate-700 bg-slate-950 p-4 text-sm text-white">Skipped: {stats.skipped}</div>
-        </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleRunCalls}
+                disabled={activeAction !== null}
+                className="rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-black hover:bg-zinc-200 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {activeAction === "call" ? "Calling..." : "📞 Run Caller Agent"}
+              </button>
 
-        {details.length > 0 && (
-          <div className="mt-6 space-y-3">
-            {details.map((d, idx) => (
-              <div key={`${d.mobileNumber || "n"}-${idx}`} className="rounded-lg border border-slate-700 bg-slate-950 p-3">
-                <p className="text-sm font-medium text-white">{d.name || "Candidate"}</p>
-                <p className="text-xs text-slate-400">{d.mobileNumber || "No number"}</p>
-                {d.email && <p className="text-xs text-slate-400">{d.email}</p>}
-                <p className="mt-1 text-xs text-slate-300">Status: {d.status}</p>
-                {d.emailStatus && (
-                  <p className="text-xs text-emerald-300">
-                    Email: {d.emailStatus.status}
-                    {d.emailStatus.reason ? ` - ${d.emailStatus.reason}` : ""}
-                  </p>
-                )}
-                {d.availabilityDate && <p className="text-xs text-emerald-300">Availability: {d.availabilityDate}</p>}
-                {Boolean(d.notes || d.reason) && <p className="mt-1 text-xs text-slate-300">{toText(d.notes || d.reason)}</p>}
+              <button
+                type="button"
+                onClick={handleSendRound1Emails}
+                disabled={activeAction !== null}
+                className="rounded-lg border border-white/30 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {activeAction === "email" ? "Sending..." : "📧 Send Round 1 Emails"}
+              </button>
+
+              <button
+                type="button"
+                onClick={downloadCallReportCsv}
+                disabled={!details.length}
+                className="rounded-lg border border-white/30 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                📥 Download Report CSV
+              </button>
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
               </div>
-            ))}
+            )}
           </div>
-        )}
+
+          {/* Stats */}
+          {details.length > 0 && (
+            <div className="mb-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg border border-white/20 bg-black p-5">
+                <p className="text-sm text-zinc-400 mb-2">Called Successfully</p>
+                <p className="text-3xl font-bold text-white">{stats.called}</p>
+              </div>
+              <div className="rounded-lg border border-white/20 bg-black p-5">
+                <p className="text-sm text-zinc-400 mb-2">Failed</p>
+                <p className="text-3xl font-bold text-white">{stats.failed}</p>
+              </div>
+              <div className="rounded-lg border border-white/20 bg-black p-5">
+                <p className="text-sm text-zinc-400 mb-2">Skipped</p>
+                <p className="text-3xl font-bold text-white">{stats.skipped}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Details List */}
+          {details.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-white mb-4">Call Results</h3>
+              {details.map((d, idx) => (
+                <div key={`${d.mobileNumber || "n"}-${idx}`} className="rounded-lg border border-white/10 bg-black/50 p-4 hover:border-white/20 transition">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="font-medium text-white">{d.name || "Candidate"}</p>
+                      <p className="text-sm text-zinc-400 mt-1">{d.mobileNumber || "No number"}</p>
+                      {d.email && <p className="text-sm text-zinc-400">{d.email}</p>}
+                      
+                      <div className="mt-3 space-y-1">
+                        <p className="text-xs text-zinc-300">
+                          <span className="text-zinc-500">Status:</span> {d.status}
+                        </p>
+                        {d.availabilityDate && (
+                          <p className="text-xs text-zinc-300">
+                            <span className="text-zinc-500">Availability:</span> {d.availabilityDate}
+                          </p>
+                        )}
+                        {d.emailStatus && (
+                          <p className="text-xs text-zinc-300">
+                            <span className="text-zinc-500">Email:</span> {d.emailStatus.status}
+                            {d.emailStatus.reason ? ` - ${d.emailStatus.reason}` : ""}
+                          </p>
+                        )}
+                        {Boolean(d.notes || d.reason) && (
+                          <p className="text-xs text-zinc-300">
+                            <span className="text-zinc-500">Notes:</span> {toText(d.notes || d.reason)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-xl ${
+                      d.status === "called" || d.status === "completed" ? "✓" : 
+                      d.status === "failed" ? "✗" : "•"
+                    }`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

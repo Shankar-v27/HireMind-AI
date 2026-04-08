@@ -192,18 +192,21 @@ export default function CompanyLiveInterviewPage() {
     }
   };
 
-  if (loading) return <div className="p-4 text-slate-400">Starting live interview...</div>;
+  if (loading) return <div className="p-4 text-white/60">Starting live interview...</div>;
 
   return (
-    <main className="space-y-4 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <Link href={`/dashboard/company/interviews/${interviewId}`} className="text-sky-400 hover:underline">
+    <main className="space-y-4 bg-black p-4 text-white">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Link
+            href={`/dashboard/company/interviews/${interviewId}`}
+            className="text-white/70 underline underline-offset-4 hover:text-white"
+          >
             ← Back to interview
           </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Live Interview</h1>
+          <h1 className="mt-1 text-2xl font-semibold text-white leading-tight">Live Interview</h1>
           {meeting && (
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-white/60">
               Candidate: {meeting.candidate_name || "Unnamed Candidate"} {meeting.candidate_email ? `(${meeting.candidate_email})` : ""}
             </p>
           )}
@@ -211,125 +214,136 @@ export default function CompanyLiveInterviewPage() {
         <button
           type="button"
           onClick={() => setShowScoreForm((v) => !v)}
-          className="rounded bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          className="w-full rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90 sm:w-auto"
         >
           {showScoreForm ? "Hide Scoring" : "End Meeting & Score"}
         </button>
-      </div>
+      </header>
 
       {error && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-400">{error}</p>}
 
       {meeting && (
-        <div className="flex gap-4">
-          <div className="min-w-0 flex-1 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <p className="mb-3 text-sm text-slate-400">
-              Room: <span className="text-white">{meeting.room_name}</span>
+        <div className="flex flex-col gap-4 lg:flex-row">
+          <div className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/5 p-3">
+            <p className="mb-3 text-sm text-white/60">
+              Room: <span className="text-white">HireMind Interview Room</span>
             </p>
             <iframe
               src={meetingSrc}
               title="Live interview meeting"
               allow="camera; microphone; fullscreen; display-capture"
-              className="h-[72vh] w-full rounded-lg border border-slate-800 bg-slate-900"
+              className="h-[72vh] w-full rounded-lg border border-white/20 bg-black"
             />
           </div>
 
           {/* Interview assistant chatbot */}
           <div
-            className={`flex shrink-0 flex-col border border-slate-800 bg-slate-950/80 rounded-xl overflow-hidden ${chatOpen ? "w-full max-w-md" : "w-12"}`}
+            className={`flex shrink-0 flex-col bg-black border border-white/20 rounded-xl overflow-hidden transition-all duration-200 ${
+              chatOpen ? "w-full lg:w-[360px]" : "w-12"
+            }`}
           >
             <button
               type="button"
               onClick={() => setChatOpen((o) => !o)}
-              className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-3 py-2.5 text-left text-sm font-medium text-white"
+              className="flex items-center justify-between bg-white/5 border-b border-white/10 px-4 py-3 text-left font-semibold text-white hover:bg-white/10 transition-colors"
             >
-              <span className={chatOpen ? "" : "hidden"}>Interview assistant</span>
-              <span className="text-slate-400">{chatOpen ? "−" : "💬"}</span>
+              <span className={chatOpen ? "text-base" : "hidden"}>AI Assistant</span>
+              <span className="text-lg">{chatOpen ? "−" : "💬"}</span>
             </button>
             {chatOpen && (
               <>
-                <p className="px-3 py-2 text-xs text-slate-500 border-b border-slate-800">
-                  Verify candidate answers or get new questions. Paste their answer and click Verify, or click Get new questions.
+                <p className="px-4 py-3 text-xs text-white/60 border-b border-white/10 bg-white/5">
+                  Ask questions to assist with the interview or analyze candidate responses
                 </p>
-                <div className="flex-1 overflow-y-auto min-h-[200px] max-h-[50vh] space-y-3 p-3">
+                <div className="flex-1 overflow-y-auto min-h-[300px] max-h-[60vh] space-y-4 p-4 bg-black">
                   {chatMessages.length === 0 && (
-                    <p className="text-xs text-slate-500">Send a candidate answer to verify (correct/partial/incorrect) or ask for new questions.</p>
+                    <p className="text-sm text-white/50 text-center py-8">No messages yet. Start by asking the AI for help.</p>
                   )}
                   {chatMessages.map((msg, i) => (
-                    <div key={i} className={msg.role === "user" ? "flex justify-end" : "flex justify-start"}>
+                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[90%] rounded-lg px-3 py-2 text-sm ${
+                        className={`max-w-xs rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
                           msg.role === "user"
-                            ? "bg-violet-600/80 text-white"
-                            : "bg-slate-800 text-slate-200 border border-slate-700"
+                            ? "bg-blue-600 text-white rounded-br-none"
+                            : "bg-white/10 text-white border border-white/20 rounded-bl-none"
                         }`}
                       >
                         {msg.role === "user" && <p className="whitespace-pre-wrap">{msg.content}</p>}
                         {msg.role === "assistant" && (
-                          <>
+                          <div className="space-y-2">
                             {msg.evaluation_rating && (
                               <span
-                                className={`inline-block rounded px-2 py-0.5 text-xs font-medium mb-2 ${
+                                className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
                                   RATING_COLORS[msg.evaluation_rating] ?? RATING_COLORS.neutral
                                 }`}
                               >
-                                {msg.evaluation_rating}
+                                {msg.evaluation_rating.charAt(0).toUpperCase() + msg.evaluation_rating.slice(1)}
                               </span>
                             )}
-                            {msg.evaluation && <p className="whitespace-pre-wrap">{msg.evaluation}</p>}
+                            {msg.evaluation && <p className="whitespace-pre-wrap text-white/90">{msg.evaluation}</p>}
                             {msg.suggested_questions && msg.suggested_questions.length > 0 && (
-                              <div className="mt-2">
-                                <p className="text-xs font-medium text-slate-400 mb-1">Suggested questions</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-xs text-slate-300">
+                              <div className="mt-3 pt-2 border-t border-white/10">
+                                <p className="text-xs font-semibold text-white/70 mb-2">Suggested Questions:</p>
+                                <ul className="space-y-1">
                                   {msg.suggested_questions.map((q, j) => (
-                                    <li key={j}>{q}</li>
+                                    <li key={j} className="text-xs text-white/70 flex items-start gap-2">
+                                      <span className="text-white/50 mt-0.5">•</span>
+                                      <span>{q}</span>
+                                    </li>
                                   ))}
                                 </ul>
                               </div>
                             )}
                             {msg.tip && (
-                              <p className="mt-2 text-xs text-cyan-400/90 border-t border-slate-700 pt-2">Tip: {msg.tip}</p>
+                              <p className="mt-2 text-xs bg-blue-600/20 border border-blue-500/30 rounded px-2 py-1.5 text-blue-200">
+                                💡 {msg.tip}
+                              </p>
                             )}
                             {!msg.evaluation && !msg.suggested_questions?.length && !msg.tip && (
-                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                              <p className="whitespace-pre-wrap text-white/90">{msg.content}</p>
                             )}
-                          </>
+                          </div>
                         )}
                       </div>
                     </div>
                   ))}
                   {assistLoading && (
                     <div className="flex justify-start">
-                      <div className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-slate-400">Thinking…</div>
+                      <div className="bg-white/10 border border-white/20 rounded-xl rounded-bl-none px-4 py-3">
+                        <div className="flex gap-2">
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                          <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                        </div>
+                      </div>
                     </div>
                   )}
                   <div ref={chatEndRef} />
                 </div>
-                {assistError && <p className="px-3 py-1 text-xs text-red-400">{assistError}</p>}
-                <div className="border-t border-slate-800 p-3 space-y-2">
-                  <textarea
-                    value={assistInput}
-                    onChange={(e) => setAssistInput(e.target.value)}
-                    placeholder="Paste candidate's answer or a note..."
-                    rows={2}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                    disabled={assistLoading}
-                  />
-                  <div className="flex flex-wrap gap-2">
+                {assistError && <p className="px-4 py-2 text-xs text-red-400 bg-red-950/20 border-t border-red-900/50">{assistError}</p>}
+                <div className="border-t border-white/10 bg-white/5 p-4 space-y-3">
+                  <div className="flex gap-2">
+                    <textarea
+                      value={assistInput}
+                      onChange={(e) => setAssistInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleVerifyAnswer();
+                        }
+                      }}
+                      placeholder="Type your question or paste a candidate's response..."
+                      rows={2}
+                      className="flex-1 rounded-lg bg-white/10 border border-white/20 px-3 py-2.5 text-sm text-white placeholder-white/50 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white/15 transition-colors resize-none"
+                      disabled={assistLoading}
+                    />
                     <button
                       type="button"
                       onClick={handleVerifyAnswer}
                       disabled={assistLoading || !assistInput.trim()}
-                      className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center self-end"
                     >
-                      Verify answer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleGetNewQuestions}
-                      disabled={assistLoading}
-                      className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200 hover:bg-slate-700 disabled:opacity-50"
-                    >
-                      Get new questions
+                      {assistLoading ? "..." : "Send"}
                     </button>
                   </div>
                 </div>
@@ -340,10 +354,10 @@ export default function CompanyLiveInterviewPage() {
       )}
 
       {showScoreForm && (
-        <form onSubmit={handleSubmitScore} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-4">
+        <form onSubmit={handleSubmitScore} className="rounded-xl border border-white/20 bg-white/5 p-4 space-y-4">
           <h2 className="text-lg font-medium text-white">Finalize Interview Score</h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="text-sm text-slate-300">
+            <label className="text-sm text-white/80">
               Score
               <input
                 type="number"
@@ -351,10 +365,10 @@ export default function CompanyLiveInterviewPage() {
                 step="0.01"
                 value={score}
                 onChange={(e) => setScore(e.target.value)}
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
               />
             </label>
-            <label className="text-sm text-slate-300">
+            <label className="text-sm text-white/80">
               Max Score
               <input
                 type="number"
@@ -362,24 +376,24 @@ export default function CompanyLiveInterviewPage() {
                 step="0.01"
                 value={maxScore}
                 onChange={(e) => setMaxScore(e.target.value)}
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+                className="mt-1 w-full rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
               />
             </label>
           </div>
-          <label className="block text-sm text-slate-300">
+          <label className="block text-sm text-white/80">
             Interview Notes
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={5}
-              className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-white"
+              className="mt-1 w-full rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
               placeholder="Add evaluation notes, strengths, concerns, and recommendation..."
             />
           </label>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            className="rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Save Score & Finish"}
           </button>

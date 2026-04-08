@@ -140,151 +140,177 @@ export default function CompanyDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-8">
-        <p className="text-slate-400">Loading…</p>
+        <p className="text-zinc-400">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <h1 className="text-2xl font-bold text-white">{company?.name ?? "Company"} Dashboard</h1>
-        <p className="mt-1 text-slate-400">Manage your interviews, candidates, and hiring pipeline.</p>
+    <div className="min-h-screen bg-black p-8">
+      <div className="mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold text-white">{company?.name ?? "Company"} Dashboard</h1>
+          <p className="mt-2 text-lg text-zinc-400">Manage your interviews, candidates, and hiring pipeline.</p>
+        </div>
 
         {error && (
-          <p className="mt-4 rounded-lg bg-red-950/50 px-4 py-2 text-sm text-red-300">{error}</p>
+          <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
         )}
 
-        <div className="mt-8 grid gap-6 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+        {/* Stats Cards */}
+        <div className="mb-12 grid gap-6 sm:grid-cols-3">
+          <div className="rounded-xl border border-white/20 bg-black p-8 transitional hover:border-white/30">
             <div className="flex items-start justify-between">
-              <p className="text-sm font-medium text-slate-400">Total Candidates</p>
-              <span className="rounded-lg bg-sky-500/10 p-2 text-sky-400">👥</span>
+              <div>
+                <p className="text-sm text-zinc-400 font-medium">Total Candidates</p>
+                <p className="mt-3 text-4xl font-bold text-white">{candidates.length}</p>
+              </div>
+              <span className="text-3xl">👥</span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-white">{candidates.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+          
+          <div className="rounded-xl border border-white/20 bg-black p-8 transitional hover:border-white/30">
             <div className="flex items-start justify-between">
-              <p className="text-sm font-medium text-slate-400">Total Interviews</p>
-              <span className="rounded-lg bg-violet-500/10 p-2 text-violet-400">📋</span>
+              <div>
+                <p className="text-sm text-zinc-400 font-medium">Total Interviews</p>
+                <p className="mt-3 text-4xl font-bold text-white">{interviews.length}</p>
+              </div>
+              <span className="text-3xl">📋</span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-white">{interviews.length}</p>
           </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6">
+          
+          <div className="rounded-xl border border-white/20 bg-black p-8 transitional hover:border-white/30">
             <div className="flex items-start justify-between">
-              <p className="text-sm font-medium text-slate-400">Active Interviews</p>
-              <span className="rounded-lg bg-amber-500/10 p-2 text-amber-400">⚡</span>
+              <div>
+                <p className="text-sm text-zinc-400 font-medium">Active Interviews</p>
+                <p className="mt-3 text-4xl font-bold text-white">{activeCount}</p>
+              </div>
+              <span className="text-3xl">⚡</span>
             </div>
-            <p className="mt-2 text-3xl font-bold text-white">{activeCount}</p>
           </div>
         </div>
 
-        <section className="mt-8">
-          <h2 className="text-lg font-semibold text-white">Quick Actions</h2>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <Link
-              href="/dashboard/company/interviews"
-              className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
-            >
-              + New Interview
-            </Link>
+        {/* Quick Actions */}
+        <div className="mb-12">
+          <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
+          <Link
+            href="/dashboard/company/interviews"
+            className="inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-black hover:bg-zinc-200 transition"
+          >
+            + New Interview
+          </Link>
+        </div>
+
+        {/* Round 0 Section */}
+        <section className="rounded-2xl border border-white/20 bg-black p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white">Round 0 - Resume Shortlisting</h2>
+            <p className="mt-2 text-zinc-400">
+              Upload a job title, JD, and bulk resumes. The system evaluates and returns shortlisted candidates.
+            </p>
           </div>
-        </section>
 
-        <section className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="text-lg font-semibold text-white">Round 0 - Resume Shortlisting</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Upload a job title, JD, and bulk resumes. The system evaluates and returns shortlisted candidates.
-          </p>
-
-          <form onSubmit={handleRound0Shortlist} className="mt-5 space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm text-slate-300">Job Title</label>
-              <input
-                value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
-                placeholder="Frontend Developer"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none ring-violet-500/30 focus:ring-2"
-              />
+          <form onSubmit={handleRound0Shortlist} className="space-y-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Job Title</label>
+                <input
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="Frontend Developer"
+                  className="w-full rounded-lg border border-white/20 bg-black px-4 py-2.5 text-white placeholder-zinc-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm text-slate-300">Job Description</label>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Job Description</label>
               <textarea
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                rows={5}
+                rows={4}
                 placeholder="React, Node.js, MongoDB, REST APIs..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none ring-violet-500/30 focus:ring-2"
+                className="w-full rounded-lg border border-white/20 bg-black px-4 py-2.5 text-white placeholder-zinc-500 outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm text-slate-300">Resumes (bulk upload)</label>
+            <div>
+              <label className="block text-sm font-medium text-white mb-2">Upload Resumes (PDF or DOCX)</label>
               <input
                 type="file"
                 multiple
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={(e) => setResumeFiles(Array.from(e.target.files ?? []))}
-                className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-md file:border-0 file:bg-violet-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-violet-500"
+                className="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-lg file:border-0 file:bg-white file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-black hover:file:bg-zinc-200"
               />
               {resumeFiles.length > 0 && (
-                <p className="text-xs text-slate-400">{resumeFiles.length} files selected</p>
+                <p className="mt-2 text-xs text-zinc-400">{resumeFiles.length} file(s) selected</p>
               )}
             </div>
 
-            {shortlistError && <p className="text-sm text-red-300">{shortlistError}</p>}
+            {shortlistError && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-300">
+                {shortlistError}
+              </div>
+            )}
 
-            <button
-              type="submit"
-              disabled={shortlistLoading}
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {shortlistLoading ? "Running Round 0..." : "Run Round 0 Shortlisting"}
-            </button>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={shortlistLoading}
+                className="rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-black hover:bg-zinc-200 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {shortlistLoading ? "Running Round 0..." : "Run Round 0 Shortlisting"}
+              </button>
 
-            {shortlistResult && shortlistResult.shortlisted.length > 0 && (
-              <>
+              {shortlistResult && shortlistResult.shortlisted.length > 0 && (
                 <button
                   type="button"
                   onClick={downloadShortlistedCsv}
-                  className="ml-3 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-500/20"
+                  className="rounded-lg border border-white/30 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/5 transition"
                 >
                   Download Shortlisted CSV
                 </button>
-              </>
-            )}
+              )}
+            </div>
           </form>
 
           {shortlistResult && (
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-emerald-800/50 bg-emerald-950/30 p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-emerald-300">
-                  Shortlisted ({shortlistResult.shortlisted.length})
+            <div className="mt-8 grid gap-6 md:grid-cols-2">
+              <div className="rounded-xl border border-white/20 bg-black p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  ✓ Shortlisted ({shortlistResult.shortlisted.length})
                 </h3>
-                <div className="mt-3 space-y-3">
-                  {shortlistResult.shortlisted.length === 0 && <p className="text-sm text-slate-400">No shortlisted candidates.</p>}
+                <div className="space-y-3">
+                  {shortlistResult.shortlisted.length === 0 && (
+                    <p className="text-sm text-zinc-400">No shortlisted candidates.</p>
+                  )}
                   {shortlistResult.shortlisted.map((item) => (
-                    <div key={item.candidateId} className="rounded-md border border-emerald-800/50 bg-black/30 p-3">
-                      <p className="text-sm font-medium text-white">{item.name || item.candidateId}</p>
-                      <p className="text-xs text-slate-400">{item.mobileNumber || "No mobile parsed"}</p>
-                      <p className="mt-1 text-xs text-slate-300">{item.evaluation.reason}</p>
+                    <div key={item.candidateId} className="rounded-lg border border-white/10 bg-black/50 p-4">
+                      <p className="font-medium text-white">{item.name || item.candidateId}</p>
+                      <p className="mt-1 text-xs text-zinc-400">{item.mobileNumber || "No mobile number"}</p>
+                      <p className="mt-2 text-xs text-zinc-300">{item.evaluation.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-xl border border-rose-800/50 bg-rose-950/30 p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-rose-300">
-                  Rejected ({shortlistResult.rejected.length})
+              <div className="rounded-xl border border-white/20 bg-black p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  ✗ Rejected ({shortlistResult.rejected.length})
                 </h3>
-                <div className="mt-3 space-y-3">
-                  {shortlistResult.rejected.length === 0 && <p className="text-sm text-slate-400">No rejected candidates.</p>}
+                <div className="space-y-3">
+                  {shortlistResult.rejected.length === 0 && (
+                    <p className="text-sm text-zinc-400">No rejected candidates.</p>
+                  )}
                   {shortlistResult.rejected.map((item) => (
-                    <div key={item.candidateId} className="rounded-md border border-rose-800/50 bg-black/30 p-3">
-                      <p className="text-sm font-medium text-white">{item.name || item.candidateId}</p>
-                      <p className="text-xs text-slate-400">{item.mobileNumber || "No mobile parsed"}</p>
-                      <p className="mt-1 text-xs text-slate-300">{item.evaluation.reason}</p>
+                    <div key={item.candidateId} className="rounded-lg border border-white/10 bg-black/50 p-4">
+                      <p className="font-medium text-white">{item.name || item.candidateId}</p>
+                      <p className="mt-1 text-xs text-zinc-400">{item.mobileNumber || "No mobile number"}</p>
+                      <p className="mt-2 text-xs text-zinc-300">{item.evaluation.reason}</p>
                     </div>
                   ))}
                 </div>

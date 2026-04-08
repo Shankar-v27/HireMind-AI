@@ -441,14 +441,14 @@ export default function CompanyInterviewPage() {
     }
   };
 
-  if (loading) return <div className="p-4 text-slate-400">Loading...</div>;
+  if (loading) return <div className="p-4 text-white/70">Loading...</div>;
 
   const totalWeightage = rounds.reduce((sum, r) => sum + (r.weightage || 0), 0);
 
   const recommendationTone = (status?: string | null) => {
-    if (status === "recommended") return "border-emerald-700/60 bg-emerald-950/40 text-emerald-300";
-    if (status === "waiting_list") return "border-amber-700/60 bg-amber-950/40 text-amber-300";
-    return "border-red-700/60 bg-red-950/40 text-red-300";
+    if (status === "recommended") return "border-white/30 bg-white/10 text-white";
+    if (status === "waiting_list") return "border-white/30 bg-white/10 text-white";
+    return "border-white/30 bg-white/10 text-red-500";
   };
 
   const recommendationLabel = (status?: string | null) => {
@@ -468,8 +468,8 @@ export default function CompanyInterviewPage() {
   const renderPlagiarismSummary = (data?: Record<string, unknown> | null) => {
     if (!data) return null;
     return (
-      <div className="space-y-1 text-xs text-slate-300">
-        {"warning" in data && <p>Flagged: <span className={data.warning ? "text-red-400" : "text-emerald-400"}>{data.warning ? "Yes" : "No"}</span></p>}
+      <div className="space-y-1 text-xs text-white/80">
+        {"warning" in data && <p>Flagged: <span className={data.warning ? "text-red-500" : "text-white"}>{data.warning ? "Yes" : "No"}</span></p>}
         {"ai_generated_score" in data && <p>AI generation score: {formatSimpleValue(data.ai_generated_score)}</p>}
         {"source_match_score" in data && <p>Source match score: {formatSimpleValue(data.source_match_score)}</p>}
         {"plagiarism_checked" in data && <p>Checked: {formatSimpleValue(data.plagiarism_checked)}</p>}
@@ -479,7 +479,7 @@ export default function CompanyInterviewPage() {
           <div>
             <p>Similar responses:</p>
             {data.similar_responses.map((item, idx) => (
-              <p key={idx} className="text-slate-400">• {formatSimpleValue(item)}</p>
+              <p key={idx} className="text-white/60">• {formatSimpleValue(item)}</p>
             ))}
           </div>
         )}
@@ -491,7 +491,7 @@ export default function CompanyInterviewPage() {
     if (!details) return null;
     const results = Array.isArray(details.results) ? details.results as Array<Record<string, unknown>> : [];
     return (
-      <div className="space-y-2 text-xs text-slate-300">
+      <div className="space-y-2 text-xs text-white/80">
         <div className="grid gap-1 md:grid-cols-4">
           {"passed" in details && <p>Passed: {formatSimpleValue(details.passed)}</p>}
           {"failed" in details && <p>Failed: {formatSimpleValue(details.failed)}</p>}
@@ -501,12 +501,12 @@ export default function CompanyInterviewPage() {
         {results.length > 0 && (
           <div className="space-y-1">
             {results.map((result, idx) => (
-              <div key={idx} className="rounded border border-slate-800 bg-slate-900/60 p-2">
-                <p>Test case {idx + 1}: <span className={result.passed ? "text-emerald-400" : "text-red-400"}>{result.passed ? "Passed" : "Failed"}</span></p>
-                {"input" in result && <p className="whitespace-pre-wrap text-slate-400">Input: {formatSimpleValue(result.input)}</p>}
-                {"expected" in result && <p className="whitespace-pre-wrap text-slate-400">Expected: {formatSimpleValue(result.expected)}</p>}
-                {"actual" in result && <p className="whitespace-pre-wrap text-slate-400">Actual: {formatSimpleValue(result.actual)}</p>}
-                {"error" in result && result.error && <p className="whitespace-pre-wrap text-red-400">Error: {formatSimpleValue(result.error)}</p>}
+              <div key={idx} className="rounded border border-white/10 bg-black p-2">
+                <p>Test case {idx + 1}: <span className={result.passed ? "text-white" : "text-red-500"}>{result.passed ? "Passed" : "Failed"}</span></p>
+                {"input" in result && <p className="whitespace-pre-wrap text-white/60">Input: {formatSimpleValue(result.input)}</p>}
+                {"expected" in result && <p className="whitespace-pre-wrap text-white/60">Expected: {formatSimpleValue(result.expected)}</p>}
+                {"actual" in result && <p className="whitespace-pre-wrap text-white/60">Actual: {formatSimpleValue(result.actual)}</p>}
+                {"error" in result && result.error && <p className="whitespace-pre-wrap text-red-500">Error: {formatSimpleValue(result.error)}</p>}
               </div>
             ))}
           </div>
@@ -518,52 +518,52 @@ export default function CompanyInterviewPage() {
   return (
     <main className="space-y-6 p-6 md:p-8">
       <header className="flex flex-col gap-4">
-        <Link href="/dashboard/company" className="text-sm text-violet-400 hover:text-violet-300">← Back to Interviews</Link>
+        <Link href="/dashboard/company" className="text-sm text-white hover:text-white/80">← Back to Interviews</Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-white md:text-3xl">{interview?.name || "Interview"}</h1>
-            {interview?.description && <p className="mt-1 text-sm text-slate-400">{interview.description}</p>}
+            {interview?.description && <p className="mt-1 text-sm text-white/70">{interview.description}</p>}
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                interview?.status === "draft" ? "bg-sky-500/20 text-sky-300" :
-                interview?.status === "active" || interview?.status === "in_progress" ? "bg-emerald-500/20 text-emerald-300" :
-                interview?.status === "completed" ? "bg-violet-500/20 text-violet-300" :
-                interview?.status === "terminated" ? "bg-red-500/20 text-red-300" : "bg-slate-600 text-slate-300"
+                interview?.status === "draft" ? "bg-white/15 text-white" :
+                interview?.status === "active" || interview?.status === "in_progress" ? "bg-white/15 text-white" :
+                interview?.status === "completed" ? "bg-white/15 text-white" :
+                interview?.status === "terminated" ? "bg-white/15 text-red-500" : "bg-white/20 text-white"
               }`}>
                 {interview?.status ?? "draft"}
               </span>
               {interview?.follow_order !== false && (
-                <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300">Sequential Order</span>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">Sequential Order</span>
               )}
               {interview?.shortlist_count != null && interview.shortlist_count > 0 && (
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-300">Shortlist Top {interview.shortlist_count}</span>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white">Shortlist Top {interview.shortlist_count}</span>
               )}
             </div>
             {interview?.scheduled_start && (
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-white/50">
                 Scheduled: {new Date(interview.scheduled_start).toLocaleString()}
                 {interview.scheduled_end && ` — ${new Date(interview.scheduled_end).toLocaleString()}`}
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => setEditInterviewOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700">
+            <button type="button" onClick={() => setEditInterviewOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-3 py-2 text-sm font-medium text-white hover:bg-white/10">
               <span aria-hidden>✎</span> Edit
             </button>
-            <Link href={`/dashboard/company/interviews/${id}/responses`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700">
+            <Link href={`/dashboard/company/interviews/${id}/responses`} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-black px-3 py-2 text-sm font-medium text-white hover:bg-white/10">
               <span aria-hidden>📄</span> View Responses
             </Link>
             {interview?.status === "draft" && (
-              <button onClick={() => handleStatusChange("activate")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50">
+              <button onClick={() => handleStatusChange("activate")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50">
                 <span aria-hidden>⚡</span> Activate Interview
               </button>
             )}
             {(interview?.status === "active" || interview?.status === "in_progress") && (
               <>
-                <button onClick={() => handleStatusChange("end")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50">
+                <button onClick={() => handleStatusChange("end")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50">
                   End Interview
                 </button>
-                <button onClick={() => handleStatusChange("terminate")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50">
+                <button onClick={() => handleStatusChange("terminate")} disabled={submitting} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50">
                   Terminate
                 </button>
               </>
@@ -572,33 +572,33 @@ export default function CompanyInterviewPage() {
         </div>
       </header>
 
-      {error && <p className="rounded-lg bg-red-950/40 px-4 py-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="rounded-lg bg-red-950/40 px-4 py-2 text-sm text-red-500">{error}</p>}
 
       {candidateSummaryOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setCandidateSummaryOpen(false)}>
-          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between border-b border-slate-700 px-5 py-4">
+          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-xl border border-white/20 bg-black shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between border-b border-white/20 px-5 py-4">
               <div>
                 <h3 className="text-xl font-semibold text-white">
                   {candidateSummary?.candidate_name || "Candidate"} {candidateSummary?.candidate_email ? `(${candidateSummary.candidate_email})` : ""}
                 </h3>
                 {candidateSummary && (
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-white/70">
                     Rank {candidateSummary.overall_rank ?? "—"} / {candidateSummary.total_candidates} • Weighted score {candidateSummary.total_weighted_score.toFixed(2)} • {recommendationLabel(candidateSummary.recommendation_status)} • Warnings {candidateSummary.total_warnings}
                   </p>
                 )}
               </div>
-              <button onClick={() => setCandidateSummaryOpen(false)} className="text-slate-400 hover:text-white">X</button>
+              <button onClick={() => setCandidateSummaryOpen(false)} className="text-white/60 hover:text-white">X</button>
             </div>
             <div className="space-y-6 p-5">
-              {candidateSummaryLoading && <p className="text-sm text-slate-400">Loading candidate details...</p>}
+              {candidateSummaryLoading && <p className="text-sm text-white/70">Loading candidate details...</p>}
               {candidateSummary && (
                 <>
-                  <section className="rounded-xl border border-fuchsia-900/50 bg-gradient-to-br from-fuchsia-950/40 to-slate-950/80 p-5">
+                  <section className="rounded-xl border border-white/20 bg-black p-5">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div className="max-w-4xl">
                         <h4 className="text-lg font-semibold text-white">AI Performance Report</h4>
-                        <p className="mt-3 text-sm leading-6 text-slate-300">
+                        <p className="mt-3 text-sm leading-6 text-white/80">
                           {candidateSummary.suitability_comment}
                         </p>
                       </div>
@@ -616,21 +616,21 @@ export default function CompanyInterviewPage() {
                         ["Communication", candidateSummary.score_breakdown.communication ?? 0],
                         ["Overall Fit", candidateSummary.score_breakdown.overall_fit ?? 0],
                       ].map(([label, value]) => (
-                        <div key={String(label)} className="rounded-lg border border-slate-800 bg-slate-950/60 p-3">
+                        <div key={String(label)} className="rounded-lg border border-white/10 bg-white/5 p-3">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm text-slate-300">{label}</p>
+                            <p className="text-sm text-white/80">{label}</p>
                             <p className="text-sm font-semibold text-white">{Number(value).toFixed(0)}/100</p>
                           </div>
-                          <div className="mt-2 h-2 rounded-full bg-slate-800">
-                            <div className="h-2 rounded-full bg-fuchsia-500" style={{ width: `${Math.max(0, Math.min(100, Number(value)))}%` }} />
+                          <div className="mt-2 h-2 rounded-full bg-white/10">
+                            <div className="h-2 rounded-full bg-white" style={{ width: `${Math.max(0, Math.min(100, Number(value)))}%` }} />
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                      <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
-                        <h5 className="text-sm font-semibold text-emerald-300">Strengths</h5>
-                        <div className="mt-3 whitespace-pre-wrap text-sm text-slate-300">
+                      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                        <h5 className="text-sm font-semibold text-white">Strengths</h5>
+                        <div className="mt-3 whitespace-pre-wrap text-sm text-white/80">
                           {(candidateSummary.report || "No report available.")
                             .split(/\n+/)
                             .filter((line) => /strength|good|strong|well|shined|performed/i.test(line))
@@ -638,9 +638,9 @@ export default function CompanyInterviewPage() {
                             .map((line, idx) => <p key={idx}>• {line.replace(/^[-*]\s*/, "")}</p>)}
                         </div>
                       </div>
-                      <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
-                        <h5 className="text-sm font-semibold text-rose-300">Weaknesses</h5>
-                        <div className="mt-3 whitespace-pre-wrap text-sm text-slate-300">
+                      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+                        <h5 className="text-sm font-semibold text-white">Weaknesses</h5>
+                        <div className="mt-3 whitespace-pre-wrap text-sm text-white/80">
                           {(candidateSummary.report || "No report available.")
                             .split(/\n+/)
                             .filter((line) => /weak|miss|gap|struggle|poor|risk|issue/i.test(line))
@@ -649,46 +649,46 @@ export default function CompanyInterviewPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-5 rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+                    <div className="mt-5 rounded-lg border border-white/10 bg-white/5 p-4">
                       <h5 className="text-sm font-semibold text-white">Hiring Recommendation</h5>
-                      <p className="mt-2 text-sm text-slate-300">
+                      <p className="mt-2 text-sm text-white/80">
                         Decision: <span className="font-medium text-white">{recommendationLabel(candidateSummary.recommendation_status)}</span>
                       </p>
-                      <p className="mt-2 text-sm text-slate-300">
+                      <p className="mt-2 text-sm text-white/80">
                         {candidateSummary.suitability_comment}
                       </p>
                     </div>
                   </section>
 
                   <section className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                       <h4 className="mb-3 text-lg font-medium text-white">Round Performance</h4>
                       <div className="space-y-3">
                         {candidateSummary.rounds.map((round) => (
-                          <div key={round.round_id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                          <div key={round.round_id} className="rounded-lg border border-white/10 bg-black p-3">
                             <div className="flex items-center justify-between gap-3">
                               <div>
                                 <p className="font-medium text-white">{round.round_type}</p>
-                                <p className="text-xs text-slate-400">Order {round.round_order} • Status {round.status} • Warnings {round.warning_count}</p>
+                                <p className="text-xs text-white/60">Order {round.round_order} • Status {round.status} • Warnings {round.warning_count}</p>
                               </div>
                               <div className="text-right text-sm">
-                                <p className="text-sky-400">{round.score ?? "—"} / {round.max_score ?? "—"}</p>
-                                <p className="text-xs text-slate-400">Norm {round.normalized_score ?? "—"} • Weighted {round.weighted_score ?? "—"}</p>
+                                <p className="text-white/80">{round.score ?? "—"} / {round.max_score ?? "—"}</p>
+                                <p className="text-xs text-white/60">Norm {round.normalized_score ?? "—"} • Weighted {round.weighted_score ?? "—"}</p>
                               </div>
                             </div>
-                            {round.notes && <p className="mt-2 text-sm text-slate-300">{round.notes}</p>}
+                            {round.notes && <p className="mt-2 text-sm text-white/80">{round.notes}</p>}
                           </div>
                         ))}
                       </div>
                     </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
                       <h4 className="mb-3 text-lg font-medium text-white">Warnings Timeline</h4>
                       <div className="max-h-80 space-y-2 overflow-y-auto text-sm">
-                        {candidateSummary.proctoring_events.length === 0 && <p className="text-slate-500">No proctoring events recorded.</p>}
+                        {candidateSummary.proctoring_events.length === 0 && <p className="text-white/50">No proctoring events recorded.</p>}
                         {candidateSummary.proctoring_events.map((event, index) => (
-                          <div key={`${event.created_at}-${index}`} className="rounded border border-slate-800 bg-slate-900/60 p-3">
+                          <div key={`${event.created_at}-${index}`} className="rounded border border-white/10 bg-black p-3">
                             <p className="font-medium text-white">{event.type}</p>
-                            <p className="text-xs text-slate-400">{new Date(event.created_at).toLocaleString()}</p>
+                            <p className="text-xs text-white/60">{new Date(event.created_at).toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
@@ -714,10 +714,10 @@ export default function CompanyInterviewPage() {
                     </div>
                   </section>
 
-                  <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                  <section className="rounded-xl border border-white/10 bg-white/5 p-4">
                     <h4 className="mb-3 text-lg font-medium text-white">Structured Responses</h4>
                     <div className="space-y-4">
-                      {candidateSummary.responses.length === 0 && <p className="text-sm text-slate-400">No responses captured yet.</p>}
+                      {candidateSummary.responses.length === 0 && <p className="text-sm text-white/60">No responses captured yet.</p>}
                       {candidateSummary.responses.map((response) => (
                         <div key={response.response_id} className="rounded-lg border border-slate-800 bg-slate-900/60 p-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -800,25 +800,25 @@ export default function CompanyInterviewPage() {
           onClick={() => livePickerSubmitting == null && setLivePickerOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-xl border border-slate-700 bg-slate-900 shadow-xl"
+            className="w-full max-w-2xl rounded-xl border border-white/20 bg-black shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-white/20 px-5 py-4">
               <div>
                 <h3 className="text-lg font-semibold text-white">Start Live Interview</h3>
-                <p className="text-sm text-slate-400">Choose a candidate from this interview to create the meeting.</p>
+                <p className="text-sm text-white/70">Choose a candidate from this interview to create the meeting.</p>
               </div>
               <button
                 onClick={() => livePickerSubmitting == null && setLivePickerOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-white/60 hover:text-white"
               >
                 X
               </button>
             </div>
             <div className="space-y-4 p-5">
-              {livePickerError && <p className="rounded bg-red-950/50 px-3 py-2 text-sm text-red-300">{livePickerError}</p>}
+              {livePickerError && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-500">{livePickerError}</p>}
               {enrolled.length === 0 ? (
-                <p className="text-sm text-slate-400">No candidates are enrolled in this interview yet.</p>
+                <p className="text-sm text-white/60">No candidates are enrolled in this interview yet.</p>
               ) : (
                 <div className="space-y-3">
                   {enrolled.map((candidate) => {
@@ -826,20 +826,20 @@ export default function CompanyInterviewPage() {
                     return (
                       <div
                         key={candidate.id}
-                        className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3"
+                        className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3"
                       >
                         <div>
                           <p className="font-medium text-white">{candidate.full_name || "Unnamed Candidate"}</p>
-                          <p className="text-sm text-slate-400">{candidate.email}</p>
-                          <p className={`text-xs ${isVerified ? "text-green-400" : "text-amber-400"}`}>
-                            {isVerified ? "Verification complete" : "Verification pending"}
+                          <p className="text-sm text-white/70">{candidate.email}</p>
+                          <p className={`text-xs ${isVerified ? "text-white" : "text-white/60"}`}>
+                            {isVerified ? "✓ Verification complete" : "○ Verification pending"}
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleStartLiveInterview(candidate.id)}
                           disabled={livePickerSubmitting !== null}
-                          className="rounded bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                          className="rounded bg-white px-3 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50"
                         >
                           {livePickerSubmitting === candidate.id ? "Starting..." : "Start"}
                         </button>
@@ -856,57 +856,57 @@ export default function CompanyInterviewPage() {
       {/* Add Round Modal */}
       {addRoundOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !submitting && setAddRoundOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-landing-card/95 p-6 shadow-xl backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/20 bg-black p-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-white">Add Round</h3>
-                <p className="mt-1 text-sm text-slate-400">Select a round type and configure its parameters. Fields marked * are required.</p>
+                <h3 className="text-2xl font-bold text-white">Add Round</h3>
+                <p className="mt-1 text-sm text-white/70">Select a round type and configure parameters. Fields marked * are required.</p>
               </div>
-              <button type="button" onClick={() => !submitting && setAddRoundOpen(false)} className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Close">✕</button>
+              <button type="button" onClick={() => !submitting && setAddRoundOpen(false)} className="rounded-lg p-1 text-white/60 hover:text-white" aria-label="Close">✕</button>
             </div>
-            <form onSubmit={handleAddRound} className="mt-5 space-y-4">
+            <form onSubmit={handleAddRound} className="space-y-5">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Round Type <span className="text-red-400">*</span></label>
-                <select value={newRound.type} onChange={(e) => setNewRound((r) => ({ ...r, type: e.target.value }))} className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500" required>
-                  <option value="APT_QUANT" className="bg-slate-800 text-white">General/Quant Aptitude</option>
-                  <option value="APT_TECH" className="bg-slate-800 text-white">Technical Aptitude</option>
-                  <option value="APT_MIXED" className="bg-slate-800 text-white">Mixed Aptitude</option>
-                  <option value="CODING" className="bg-slate-800 text-white">Coding</option>
-                  <option value="GD" className="bg-slate-800 text-white">Group Discussion</option>
-                  <option value="TECH_INTERVIEW" className="bg-slate-800 text-white">Technical Interview</option>
-                  <option value="HR_INTERVIEW" className="bg-slate-800 text-white">HR/General Interview</option>
-                  <option value="LIVE_INTERVIEW" className="bg-slate-800 text-white">Live Interview</option>
+                <label className="mb-2 block text-sm font-medium text-white">Round Type <span className="text-red-500">*</span></label>
+                <select value={newRound.type} onChange={(e) => setNewRound((r) => ({ ...r, type: e.target.value }))} className="dark-native w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" required>
+                  <option value="APT_QUANT" className="bg-black text-white">General/Quant Aptitude</option>
+                  <option value="APT_TECH" className="bg-black text-white">Technical Aptitude</option>
+                  <option value="APT_MIXED" className="bg-black text-white">Mixed Aptitude</option>
+                  <option value="CODING" className="bg-black text-white">Coding</option>
+                  <option value="GD" className="bg-black text-white">Group Discussion</option>
+                  <option value="TECH_INTERVIEW" className="bg-black text-white">Technical Interview</option>
+                  <option value="HR_INTERVIEW" className="bg-black text-white">HR/General Interview</option>
+                  <option value="LIVE_INTERVIEW" className="bg-black text-white">Live Interview</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Duration (minutes) <span className="text-red-400">*</span></label>
-                <input type="number" min={1} value={newRound.duration_minutes} onChange={(e) => setNewRound((r) => ({ ...r, duration_minutes: parseInt(e.target.value, 10) || 30 }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" required />
+                <label className="mb-2 block text-sm font-medium text-white">Duration (minutes) <span className="text-red-500">*</span></label>
+                <input type="number" min={1} value={newRound.duration_minutes} onChange={(e) => setNewRound((r) => ({ ...r, duration_minutes: parseInt(e.target.value, 10) || 30 }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" required />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Weightage (%) <span className="text-red-400">*</span></label>
-                <input type="number" min={0} max={100} placeholder="e.g. 30" value={newRound.weightage} onChange={(e) => setNewRound((r) => ({ ...r, weightage: parseFloat(e.target.value) || 0 }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500" />
-                <p className="mt-1 text-xs text-slate-500">All round weightages must sum to 100</p>
+                <label className="mb-2 block text-sm font-medium text-white">Weightage (%) <span className="text-red-500">*</span></label>
+                <input type="number" min={0} max={100} placeholder="e.g. 30" value={newRound.weightage} onChange={(e) => setNewRound((r) => ({ ...r, weightage: parseFloat(e.target.value) || 0 }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white placeholder-white/40 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
+                <p className="mt-1 text-xs text-white/50">All round weightages must sum to 100</p>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Number of Questions <span className="text-red-400">*</span></label>
-                <input type="number" min={1} value={newRound.num_questions} onChange={(e) => setNewRound((r) => ({ ...r, num_questions: parseInt(e.target.value, 10) || 20 }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" required />
+                <label className="mb-2 block text-sm font-medium text-white">Number of Questions <span className="text-red-500">*</span></label>
+                <input type="number" min={1} value={newRound.num_questions} onChange={(e) => setNewRound((r) => ({ ...r, num_questions: parseInt(e.target.value, 10) || 20 }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" required />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Difficulty <span className="text-red-400">*</span></label>
-                <select value={newRound.difficulty} onChange={(e) => setNewRound((r) => ({ ...r, difficulty: e.target.value }))} className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500" required>
-                  <option value="Easy" className="bg-slate-800 text-white">Easy</option>
-                  <option value="Medium" className="bg-slate-800 text-white">Medium</option>
-                  <option value="Hard" className="bg-slate-800 text-white">Hard</option>
+                <label className="mb-2 block text-sm font-medium text-white">Difficulty <span className="text-red-500">*</span></label>
+                <select value={newRound.difficulty} onChange={(e) => setNewRound((r) => ({ ...r, difficulty: e.target.value }))} className="dark-native w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" required>
+                  <option value="Easy" className="bg-black text-white">Easy</option>
+                  <option value="Medium" className="bg-black text-white">Medium</option>
+                  <option value="Hard" className="bg-black text-white">Hard</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Domains (comma-separated) <span className="text-red-400">*</span></label>
-                <input type="text" placeholder="e.g. Profit &amp; Loss, Percentages, Time &amp; Work, Averages, Ratio &amp; Proportion" value={newRound.domains} onChange={(e) => setNewRound((r) => ({ ...r, domains: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500" />
-                <p className="mt-1 text-xs text-slate-500">AI uses these domains to generate relevant questions</p>
+                <label className="mb-2 block text-sm font-medium text-white">Domains (comma-separated) <span className="text-red-500">*</span></label>
+                <input type="text" placeholder="e.g. Profit &amp; Loss, Percentages, Time &amp; Work, Averages, Ratio &amp; Proportion" value={newRound.domains} onChange={(e) => setNewRound((r) => ({ ...r, domains: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-sm text-white placeholder-white/40 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
+                <p className="mt-1 text-xs text-white/50">AI uses these domains to generate relevant questions</p>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => !submitting && setAddRoundOpen(false)} className="rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-slate-300 hover:bg-white/10">Cancel</button>
-                <button type="submit" disabled={submitting} className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? "Adding…" : "Add Round"}</button>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => !submitting && setAddRoundOpen(false)} className="rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" disabled={submitting} className="rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition">{submitting ? "Adding…" : "Add Round"}</button>
               </div>
             </form>
           </div>
@@ -916,43 +916,43 @@ export default function CompanyInterviewPage() {
       {/* Edit Interview Modal */}
       {editInterviewOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !submitting && setEditInterviewOpen(false)}>
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-landing-card/95 p-8 shadow-xl backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white">Edit Interview</h2>
-            <form onSubmit={handleEditInterview} className="mt-6 space-y-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/20 bg-black p-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-white">Edit Interview</h2>
+            <form onSubmit={handleEditInterview} className="mt-8 space-y-5">
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Interview Name</label>
-                <input type="text" required value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                <label className="mb-2 block text-sm font-medium text-white">Interview Name</label>
+                <input type="text" required value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Description (optional)</label>
-                <textarea rows={2} value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                <label className="mb-2 block text-sm font-medium text-white">Description (optional)</label>
+                <textarea rows={2} value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
               </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-300">Sequential Round Order</p>
-                  <p className="text-xs text-slate-500">Candidates must complete rounds in order.</p>
+                  <p className="text-sm font-medium text-white">Sequential Round Order</p>
+                  <p className="text-xs text-white/60 mt-0.5">Candidates must complete rounds in order.</p>
                 </div>
-                <button type="button" role="switch" aria-checked={editForm.follow_order} onClick={() => setEditForm((p) => ({ ...p, follow_order: !p.follow_order }))} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${editForm.follow_order ? "bg-violet-600" : "bg-slate-600"}`}>
-                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow ${editForm.follow_order ? "left-7" : "left-1"}`} />
+                <button type="button" role="switch" aria-checked={editForm.follow_order} onClick={() => setEditForm((p) => ({ ...p, follow_order: !p.follow_order }))} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${editForm.follow_order ? "bg-white" : "bg-white/20"}`}>
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-black shadow ${editForm.follow_order ? "left-6" : "left-1"}`} />
                 </button>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Shortlist Count (optional)</label>
-                <input type="number" min={1} value={editForm.shortlist_count === "" ? "" : editForm.shortlist_count} onChange={(e) => { const v = e.target.value; setEditForm((p) => ({ ...p, shortlist_count: v === "" ? "" : parseInt(v, 10) || "" })); }} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                <label className="mb-2 block text-sm font-medium text-white">Shortlist Count (optional)</label>
+                <input type="number" min={1} value={editForm.shortlist_count === "" ? "" : editForm.shortlist_count} onChange={(e) => { const v = e.target.value; setEditForm((p) => ({ ...p, shortlist_count: v === "" ? "" : parseInt(v, 10) || "" })); }} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-0.5 block text-xs text-slate-500">Start</label>
-                  <input type="datetime-local" value={editForm.scheduled_start} onChange={(e) => setEditForm((p) => ({ ...p, scheduled_start: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                  <label className="mb-1.5 block text-xs font-medium text-white/80">Start Date/Time</label>
+                  <input type="datetime-local" value={editForm.scheduled_start} onChange={(e) => setEditForm((p) => ({ ...p, scheduled_start: e.target.value }))} className="dark-native w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
                 </div>
                 <div>
-                  <label className="mb-0.5 block text-xs text-slate-500">End</label>
-                  <input type="datetime-local" value={editForm.scheduled_end} onChange={(e) => setEditForm((p) => ({ ...p, scheduled_end: e.target.value }))} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                  <label className="mb-1.5 block text-xs font-medium text-white/80">End Date/Time</label>
+                  <input type="datetime-local" value={editForm.scheduled_end} onChange={(e) => setEditForm((p) => ({ ...p, scheduled_end: e.target.value }))} className="dark-native w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => !submitting && setEditInterviewOpen(false)} className="flex-1 rounded-lg border border-white/20 py-2 text-sm font-medium text-slate-300 hover:bg-white/10">Cancel</button>
-                <button type="submit" disabled={submitting} className="flex-1 rounded-lg bg-violet-600 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? "Saving…" : "Save"}</button>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => !submitting && setEditInterviewOpen(false)} className="flex-1 rounded-lg border border-white/20 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" disabled={submitting} className="flex-1 rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition">{submitting ? "Saving…" : "Save"}</button>
               </div>
             </form>
           </div>
@@ -962,21 +962,21 @@ export default function CompanyInterviewPage() {
       {/* Bulk Upload Modal */}
       {bulkUploadOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !submitting && setBulkUploadOpen(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-landing-card/95 p-6 shadow-xl backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-white">Bulk Upload Candidates</h3>
-            <p className="mt-1 text-sm text-slate-400">CSV/Excel with email, name, password columns.</p>
-            <form onSubmit={handleBulkEnroll} className="mt-4 space-y-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/20 bg-black p-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold text-white">Bulk Upload Candidates</h3>
+            <p className="mt-2 text-sm text-white/70">CSV/Excel with email, name, password columns.</p>
+            <form onSubmit={handleBulkEnroll} className="mt-6 space-y-5">
               <input ref={bulkFileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={(e) => setBulkFile(e.target.files?.[0] || null)} className="hidden" />
-              <button type="button" onClick={() => bulkFileInputRef.current?.click()} className="w-full rounded-lg border border-dashed border-slate-500 bg-slate-900/50 py-4 text-sm text-slate-400 hover:bg-slate-800/50">
-                {bulkFile ? bulkFile.name : "Choose file"}
+              <button type="button" onClick={() => bulkFileInputRef.current?.click()} className="w-full rounded-lg border border-dashed border-white/30 bg-white/5 py-6 text-sm text-white/80 hover:bg-white/10 transition font-medium">
+                {bulkFile ? `✓ ${bulkFile.name}` : "📁 Choose file"}
               </button>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">Password column index (0-based)</label>
-                <input type="number" min={0} value={passwordCol} onChange={(e) => setPasswordCol(parseInt(e.target.value, 10) || 0)} className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white" />
+                <label className="mb-2 block text-sm font-medium text-white">Password column index (0-based)</label>
+                <input type="number" min={0} value={passwordCol} onChange={(e) => setPasswordCol(parseInt(e.target.value, 10) || 0)} className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
               </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => !submitting && setBulkUploadOpen(false)} className="flex-1 rounded-lg border border-white/20 py-2 text-sm font-medium text-slate-300 hover:bg-white/10">Cancel</button>
-                <button type="submit" disabled={submitting || !bulkFile} className="flex-1 rounded-lg bg-violet-600 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50">{submitting ? "Uploading…" : "Upload"}</button>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => !submitting && setBulkUploadOpen(false)} className="flex-1 rounded-lg border border-white/20 py-2.5 text-sm font-medium text-white hover:bg-white/10 transition">Cancel</button>
+                <button type="submit" disabled={submitting || !bulkFile} className="flex-1 rounded-lg bg-white py-2.5 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-60 disabled:cursor-not-allowed transition">{submitting ? "Uploading…" : "Upload"}</button>
               </div>
             </form>
           </div>
@@ -988,51 +988,51 @@ export default function CompanyInterviewPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Rounds ({rounds.length})</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-white/70">
               {interview?.status === "draft" ? "Configure the interview pipeline. Reorder rounds before activating." : "Interview is active. Rounds cannot be modified."}
             </p>
           </div>
           {interview?.status === "draft" && (
-            <button type="button" onClick={() => { setAddRoundOpen(true); setNewRound((prev) => ({ ...prev, order: rounds.length + 1 })); }} className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+            <button type="button" onClick={() => { setAddRoundOpen(true); setNewRound((prev) => ({ ...prev, order: rounds.length + 1 })); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90 transition">
               <span aria-hidden>+</span> Add Round
             </button>
           )}
         </div>
         <div className="mt-4 space-y-3">
           {rounds.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-600 bg-slate-900/40 py-12 text-center text-slate-500">
+            <div className="rounded-xl border border-dashed border-white/30 bg-white/5 py-12 text-center text-white/60">
               No rounds configured yet. Add your first round above.
             </div>
           ) : (
             rounds.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900/50 p-4">
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600/80 text-sm font-bold text-white">{r.order}</div>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">{r.order}</div>
                   <div>
                     <p className="font-medium text-white">{ROUND_TYPE_LABEL[r.type] ?? r.type}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                      <span className={r.status === "active" ? "text-emerald-400" : ""}>{r.status}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/70">
+                      <span className={r.status === "active" ? "text-white" : "text-white/60"}>{r.status}</span>
                       <span>{r.duration_minutes ?? 0} min</span>
-                      {(r.weightage ?? 0) > 0 && <span className="text-violet-400">Weight: {r.weightage}%</span>}
+                      {(r.weightage ?? 0) > 0 && <span>Weight: {r.weightage}%</span>}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {r.type !== "LIVE_INTERVIEW" && (
-                    <Link href={`/dashboard/company/interviews/${id}/rounds/${r.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800" onClick={(e) => e.stopPropagation()}>
+                    <Link href={`/dashboard/company/interviews/${id}/rounds/${r.id}`} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition" onClick={(e) => e.stopPropagation()}>
                       <span aria-hidden>📄</span> Questions
                     </Link>
                   )}
                   {r.type === "LIVE_INTERVIEW" && (
-                    <button type="button" onClick={() => openLivePicker(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-600/60 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-950/30">
+                    <button type="button" onClick={() => openLivePicker(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition">
                       Start Live
                     </button>
                   )}
-                  <button type="button" onClick={() => loadResponses(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-800">
+                  <button type="button" onClick={() => loadResponses(r.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10 transition">
                     Responses
                   </button>
                   {interview?.status === "draft" && (
-                    <button type="button" onClick={() => handleDeleteRound(r.id)} disabled={submitting} className="rounded-lg border border-red-800/50 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-950/40 disabled:opacity-50">
+                    <button type="button" onClick={() => handleDeleteRound(r.id)} disabled={submitting} className="rounded-lg border border-red-800/40 px-3 py-1.5 text-xs font-medium text-red-400 hover:bg-red-950/30 transition disabled:opacity-50">
                       Delete
                     </button>
                   )}
@@ -1042,9 +1042,9 @@ export default function CompanyInterviewPage() {
           )}
         </div>
         {viewRoundId != null && responsesByRound[viewRoundId] && (
-          <div className="mt-4 rounded-xl border border-slate-700 p-4 text-sm">
+          <div className="mt-4 rounded-xl border border-white/20 bg-white/5 p-4 text-sm">
             <h3 className="mb-2 font-medium text-white">Responses for round {viewRoundId}</h3>
-            <p className="mb-3 text-xs text-slate-400">Shows every candidate response for this round, including warnings and plagiarism result.</p>
+            <p className="mb-3 text-xs text-white/70">Shows every candidate response for this round, including warnings and plagiarism result.</p>
             <div className="max-h-[28rem] space-y-3 overflow-y-auto">
               {Object.entries((responsesByRound[viewRoundId] || []).reduce<Record<string, ResponseRow[]>>((acc, row) => {
                 const key = `${row.candidate_id}`;
@@ -1052,41 +1052,41 @@ export default function CompanyInterviewPage() {
                 acc[key].push(row);
                 return acc;
               }, {})).map(([candidateId, rows]) => (
-                <div key={candidateId} className="rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+                <div key={candidateId} className="rounded-lg border border-white/20 bg-white/10 p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
                       <p className="font-medium text-white">{rows[0]?.candidate_name || "Candidate"}</p>
-                      <p className="text-xs text-slate-400">{rows[0]?.candidate_email}</p>
+                      <p className="text-xs text-white/70">{rows[0]?.candidate_email}</p>
                     </div>
-                    <p className="text-xs text-amber-300">Warnings: {rows[0]?.warning_count ?? 0}</p>
+                    <p className="text-xs text-white">{rows[0]?.warning_count ?? 0} warnings</p>
                   </div>
                   <div className="space-y-2">
                     {rows.map((row) => (
-                      <div key={row.id} className="rounded border border-slate-800 bg-slate-950/60 p-2">
+                      <div key={row.id} className="rounded border border-white/20 bg-white/5 p-2">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-white">Q{row.question_id} • {row.question_type || "answer"}</p>
-                            <p className="mt-1 text-xs text-slate-400">{row.question_content}</p>
+                            <p className="mt-1 text-xs text-white/70">{row.question_content}</p>
                           </div>
                           <div className="text-right text-xs">
-                            <p className={row.plagiarism_warning ? "text-red-400" : "text-sky-400"}>
+                            <p className="text-white">
                               Score: {row.effective_score ?? row.score ?? "—"}
                             </p>
-                            <p className={row.plagiarism_warning ? "text-red-400" : "text-emerald-400"}>
-                              Plagiarism: {row.plagiarism_warning ? "TRUE" : "FALSE"}
+                            <p className={row.plagiarism_warning ? "text-red-400" : "text-white/80"}>
+                              Plagiarism: {row.plagiarism_warning ? "✗ Yes" : "✓ No"}
                             </p>
                           </div>
                         </div>
-                        <p className="mt-2 whitespace-pre-wrap text-slate-300">{row.content || "—"}</p>
+                        <p className="mt-2 whitespace-pre-wrap text-white/80">{row.content || "—"}</p>
                         {(row.plagiarism || row.cross_plagiarism) && (
                           <div className="mt-2 grid gap-2 md:grid-cols-2">
-                            <div className="rounded border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
-                              <p className="mb-1 font-medium text-slate-200">Plagiarism</p>
-                              {row.plagiarism ? renderPlagiarismSummary(row.plagiarism) : <p className="text-slate-500">Not checked</p>}
+                            <div className="rounded border border-white/20 bg-white/10 p-2 text-xs text-white/80">
+                              <p className="mb-1 font-medium text-white">Plagiarism</p>
+                              {row.plagiarism ? renderPlagiarismSummary(row.plagiarism) : <p className="text-white/60">Not checked</p>}
                             </div>
-                            <div className="rounded border border-slate-800 bg-slate-900/70 p-2 text-xs text-slate-300">
-                              <p className="mb-1 font-medium text-slate-200">Cross Plagiarism</p>
-                              {row.cross_plagiarism ? renderPlagiarismSummary(row.cross_plagiarism) : <p className="text-slate-500">Not checked</p>}
+                            <div className="rounded border border-white/20 bg-white/10 p-2 text-xs text-white/80">
+                              <p className="mb-1 font-medium text-white">Cross Plagiarism</p>
+                              {row.cross_plagiarism ? renderPlagiarismSummary(row.cross_plagiarism) : <p className="text-white/60">Not checked</p>}
                             </div>
                           </div>
                         )}
@@ -1105,13 +1105,13 @@ export default function CompanyInterviewPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Candidates ({enrolled.length})</h2>
-            <p className="mt-1 text-sm text-slate-400">Candidates enrolled in this interview. Add individually or bulk upload.</p>
+            <p className="mt-1 text-sm text-white/70">Candidates enrolled in this interview. Add individually or bulk upload.</p>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => { setBulkUploadOpen(true); setBulkFile(null); }} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 bg-slate-800/80 px-3 py-2 text-sm font-medium text-slate-300 hover:bg-slate-700">
+            <button type="button" onClick={() => { setBulkUploadOpen(true); setBulkFile(null); }} className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/10 transition">
               <span aria-hidden>↑</span> Bulk Upload
             </button>
-            <button type="button" onClick={() => { setAddCandidateOpen(true); setAddCandidateError(null); }} className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+            <button type="button" onClick={() => { setAddCandidateOpen(true); setAddCandidateError(null); }} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90 transition">
               <span aria-hidden>+</span> Add Candidate
             </button>
           </div>
@@ -1119,33 +1119,33 @@ export default function CompanyInterviewPage() {
 
           {addCandidateOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => !addCandidateSubmitting && setAddCandidateOpen(false)}>
-              <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+              <div className="w-full max-w-md rounded-xl border border-white/20 bg-black shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between border-b border-white/20 px-5 py-4">
                   <h3 className="text-lg font-semibold text-white">Add Candidate</h3>
-                  <button onClick={() => !addCandidateSubmitting && setAddCandidateOpen(false)} className="text-slate-400 hover:text-white">X</button>
+                  <button onClick={() => !addCandidateSubmitting && setAddCandidateOpen(false)} className="text-white/60 hover:text-white">X</button>
                 </div>
-                <form onSubmit={handleAddCandidateSubmit} className="space-y-4 p-5">
-                  {addCandidateError && <p className="rounded bg-red-950/50 px-3 py-2 text-sm text-red-300">{addCandidateError}</p>}
+                <form onSubmit={handleAddCandidateSubmit} className="space-y-5 p-5">
+                  {addCandidateError && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-500">{addCandidateError}</p>}
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">Full Name</label>
+                    <label className="mb-2 block text-sm font-medium text-white">Full Name</label>
                     <input type="text" value={addCandidateForm.full_name}
                       onChange={(e) => setAddCandidateForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white" />
+                      className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">Email *</label>
+                    <label className="mb-2 block text-sm font-medium text-white">Email <span className="text-red-500">*</span></label>
                     <input type="email" value={addCandidateForm.email}
                       onChange={(e) => setAddCandidateForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white" />
+                      className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-300">Password *</label>
+                    <label className="mb-2 block text-sm font-medium text-white">Password <span className="text-red-500">*</span></label>
                     <input type="password" value={addCandidateForm.password}
                       onChange={(e) => setAddCandidateForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full rounded border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white" />
+                      className="w-full rounded-lg border border-white/20 bg-black px-3 py-2.5 text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/20" />
                   </div>
                   <button type="submit" disabled={addCandidateSubmitting || !addCandidateForm.email || !addCandidateForm.password}
-                    className="w-full rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50">
+                    className="w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed">
                     {addCandidateSubmitting ? "Adding..." : "Add Candidate"}
                   </button>
                 </form>
@@ -1155,13 +1155,13 @@ export default function CompanyInterviewPage() {
 
         <div className="mt-4 overflow-x-auto">
           {enrolled.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-600 bg-slate-900/40 py-12 text-center text-slate-500">
+            <div className="rounded-xl border border-dashed border-white/30 bg-white/5 py-12 text-center text-white/60">
               No candidates enrolled yet. Add candidates individually or bulk upload a CSV/Excel file.
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-700 text-left text-slate-400">
+                <tr className="border-b border-white/20 text-left text-white/80">
                   <th className="pb-3 pr-4 font-medium">Name</th>
                   <th className="pb-3 pr-4 font-medium">Email</th>
                   <th className="pb-3 pr-4 font-medium">Verified</th>
@@ -1170,19 +1170,19 @@ export default function CompanyInterviewPage() {
               </thead>
               <tbody>
                 {enrolled.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-800/80">
+                  <tr key={c.id} className="border-b border-white/10">
                     <td className="py-3 pr-4 font-medium text-white">{c.full_name || "—"}</td>
-                    <td className="py-3 pr-4 text-slate-300">{c.email}</td>
+                    <td className="py-3 pr-4 text-white/70">{c.email}</td>
                     <td className="py-3 pr-4">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${(c.verification_status === "approved" || c.verification_status === "completed") ? "bg-emerald-500/20 text-emerald-300" : "bg-amber-500/20 text-amber-300"}`}>
-                        {(c.verification_status === "approved" || c.verification_status === "completed") ? "Verified" : "Not Verified"}
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${(c.verification_status === "approved" || c.verification_status === "completed") ? "bg-white/20 text-white" : "bg-white/10 text-white/70"}`}>
+                        {(c.verification_status === "approved" || c.verification_status === "completed") ? "✓ Verified" : "• Not Verified"}
                       </span>
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button type="button" onClick={() => openCandidateSummary(c.id)} className="rounded-lg border border-slate-600 px-2 py-1 text-xs text-emerald-300 hover:bg-slate-800">View</button>
-                        <button type="button" onClick={() => downloadCandidateReport(c.id)} disabled={reportGenerating} className="rounded-lg border border-slate-600 px-2 py-1 text-xs text-sky-400 hover:bg-slate-800 disabled:opacity-50">{reportGenerating ? "…" : "Report"}</button>
-                        <button type="button" onClick={() => { if (!confirm(`Remove "${c.full_name || c.email}"?`)) return; setSubmitting(true); companyApi.removeCandidate(id, c.id).then(() => loadData()).catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Remove failed"))).finally(() => setSubmitting(false)); }} disabled={submitting} className="rounded-lg border border-red-800/50 p-1.5 text-red-300 hover:bg-red-950/40 disabled:opacity-50" aria-label="Remove">
+                        <button type="button" onClick={() => openCandidateSummary(c.id)} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white hover:bg-white/10 transition">View</button>
+                        <button type="button" onClick={() => downloadCandidateReport(c.id)} disabled={reportGenerating} className="rounded-lg border border-white/20 px-2 py-1 text-xs text-white hover:bg-white/10 transition disabled:opacity-50">{reportGenerating ? "…" : "Report"}</button>
+                        <button type="button" onClick={() => { if (!confirm(`Remove "${c.full_name || c.email}"?`)) return; setSubmitting(true); companyApi.removeCandidate(id, c.id).then(() => loadData()).catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Remove failed"))).finally(() => setSubmitting(false)); }} disabled={submitting} className="rounded-lg border border-red-800/40 px-2 py-1 text-xs text-red-400 hover:bg-red-950/30 transition disabled:opacity-50" aria-label="Remove">
                           <span aria-hidden>🗑</span>
                         </button>
                       </div>

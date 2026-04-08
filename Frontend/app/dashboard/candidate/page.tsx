@@ -46,7 +46,7 @@ export default function CandidateDashboard() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-8">
-        <p className="text-slate-400">Loading…</p>
+        <p className="text-white/70">Loading…</p>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function CandidateDashboard() {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-bold text-white">Welcome, {name}</h1>
-        <p className="mt-1 text-slate-400">
+        <p className="mt-1 text-white/70">
           {verified ? "You're verified. Check your interviews to get started." : "Complete verification to access your interview rounds."}
         </p>
 
@@ -68,39 +68,39 @@ export default function CandidateDashboard() {
         )}
 
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-6">
+          <div className="rounded-xl border border-white/20 bg-white/5 p-6">
             <h2 className="text-lg font-semibold text-white">Verification Status</h2>
             <div className="mt-4 flex items-center gap-3">
               {verified ? (
                 <>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">✓</span>
-                  <span className="text-lg font-medium text-emerald-400">Verified</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">✓</span>
+                  <span className="text-lg font-medium text-white">Verified</span>
                 </>
               ) : (
                 <>
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">!</span>
-                  <span className="text-slate-300">Complete verification to access rounds</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">!</span>
+                  <span className="text-white/80">Complete verification to access rounds</span>
                 </>
               )}
             </div>
             {!verified && (
               <Link
                 href="/dashboard/candidate/verification"
-                className="mt-4 inline-block text-sm font-medium text-sky-400 hover:text-sky-300"
+                className="mt-4 inline-block text-sm font-medium text-white hover:text-white/80 transition"
               >
                 Complete verification →
               </Link>
             )}
           </div>
 
-          <div className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-6">
+          <div className="rounded-xl border border-white/20 bg-white/5 p-6">
             <h2 className="text-lg font-semibold text-white">Enrolled Interviews</h2>
             <div className="mt-4">
               <p className="text-3xl font-bold text-white">{count}</p>
             </div>
             <Link
               href="/dashboard/candidate/interviews"
-              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-sky-400 hover:text-sky-300"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-white hover:text-white/80 transition"
             >
               View Interviews
               <span aria-hidden>→</span>

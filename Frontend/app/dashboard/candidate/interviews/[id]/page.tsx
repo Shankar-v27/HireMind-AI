@@ -73,7 +73,7 @@ export default function CandidateInterviewDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-8">
-        <p className="text-slate-400">Loading…</p>
+        <p className="text-white/70">Loading…</p>
       </div>
     );
   }
@@ -81,16 +81,16 @@ export default function CandidateInterviewDetailPage() {
   const verified = verificationStatus === "approved";
   const statusColor =
     interview?.status === "active" || interview?.status === "in_progress"
-      ? "text-emerald-400"
+      ? "text-white"
       : interview?.status === "completed"
-        ? "text-violet-400"
-        : "text-slate-400";
+        ? "text-white/80"
+        : "text-white/70";
 
   return (
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-4xl">
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-3 py-1 text-sm font-medium ${statusColor}`}>
+          <span className={`rounded-full border px-3 py-1 text-sm font-medium border-white/20 text-white bg-white/10 ${statusColor}`}>
             {interview?.status ?? "—"}
           </span>
         </div>
@@ -101,26 +101,26 @@ export default function CandidateInterviewDetailPage() {
         )}
 
         {!verified && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-800/60 bg-amber-950/30 px-5 py-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/20 bg-white/5 px-5 py-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🛡</span>
+              <span className="text-2xl">(📄)</span>
               <div>
-                <p className="font-semibold text-amber-200">Verification Required</p>
-                <p className="text-sm text-amber-200/80">Complete identity verification to access interview rounds.</p>
+                <p className="font-semibold text-white">Verification Required</p>
+                <p className="text-sm text-white/70">Complete identity verification to access interview rounds.</p>
               </div>
             </div>
             <Link
               href="/dashboard/candidate/verification"
-              className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500"
+              className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90 transition"
             >
-              <span>🛡</span> Verify Now
+              <span>(ud83d\udcc4)</span> Verify Now
             </Link>
           </div>
         )}
 
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-white">Interview Rounds</h2>
-          <p className="mt-1 text-sm text-slate-400">Complete the available rounds at your own pace.</p>
+          <p className="mt-1 text-sm text-white/70">Complete the available rounds at your own pace.</p>
           <ul className="mt-4 space-y-3">
             {rounds
               .sort((a, b) => a.order - b.order)
@@ -138,33 +138,33 @@ export default function CandidateInterviewDetailPage() {
                       href={locked ? "#" : `/dashboard/candidate/interviews/${id}/rounds/${r.id}`}
                       className={`flex items-center gap-4 rounded-xl border p-4 transition ${
                         locked
-                          ? "cursor-not-allowed border-slate-800 bg-slate-900/50 opacity-80"
-                          : "border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-900/80"
+                          ? "cursor-not-allowed border-white/10 bg-white/5 opacity-50"
+                          : "border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/10"
                       }`}
                       onClick={(e) => locked && e.preventDefault()}
                     >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-600/80 text-sm font-semibold text-white">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold text-white">
                         {r.order}
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-white">{label}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                          {details.length > 0 && <span className="text-slate-400">{details.join(" · ")}</span>}
+                          {details.length > 0 && <span className="text-white/70">{details.join(" · ")}</span>}
                           <span
                             className={
-                              completed ? "text-violet-400" : locked ? "text-slate-500" : "text-sky-400"
+                              completed ? "text-white" : locked ? "text-white/50" : "text-white/80"
                             }
                           >
                             {completed ? "Completed" : locked ? "Locked" : "Available"}
                           </span>
                           {r.type === "LIVE_INTERVIEW" && !locked && (
-                            <span className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-xs text-emerald-400">
+                            <span className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-white/80">
                               Live
                             </span>
                           )}
                         </div>
                       </div>
-                      <span className="shrink-0 text-slate-500">
+                      <span className="shrink-0 text-white/60">
                         {locked ? "🔒" : completed ? "✓" : "→"}
                       </span>
                     </Link>

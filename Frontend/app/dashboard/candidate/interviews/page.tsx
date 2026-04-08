@@ -44,7 +44,7 @@ export default function CandidateInterviewsPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-8">
-        <p className="text-slate-400">Loading…</p>
+        <p className="text-white/70">Loading…</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function CandidateInterviewsPage() {
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-2xl font-bold text-white">My Interviews</h1>
-        <p className="mt-1 text-slate-400">View your enrolled interviews and access rounds.</p>
+        <p className="mt-1 text-white/70">View your enrolled interviews and access rounds.</p>
 
         {error && (
           <p className="mt-4 rounded-lg bg-red-950/50 px-4 py-2 text-sm text-red-300">{error}</p>
@@ -63,7 +63,7 @@ export default function CandidateInterviewsPage() {
 
         <div className="mt-6">
           {interviews.length === 0 ? (
-            <p className="rounded-xl border border-slate-800 bg-slate-900/50 p-8 text-center text-slate-400">
+            <p className="rounded-xl border border-white/30 bg-white/5 p-8 text-center text-white/60">
               No interviews enrolled yet.
             </p>
           ) : (
@@ -76,10 +76,10 @@ export default function CandidateInterviewsPage() {
                   <li key={i.id}>
                     <Link
                       href={`/dashboard/candidate/interviews/${i.id}`}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 transition hover:border-slate-600 hover:bg-slate-800/80"
+                      className="flex items-center justify-between gap-4 rounded-xl border border-white/20 bg-white/5 p-5 transition hover:border-white/30 hover:bg-white/10"
                     >
                       <div className="flex min-w-0 flex-1 items-start gap-4">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-700/80 text-slate-400">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/20 text-white">
                           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
@@ -89,32 +89,32 @@ export default function CandidateInterviewsPage() {
                             <p className="font-semibold text-white">{i.name}</p>
                             <span
                               className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                isActive ? "bg-emerald-500/20 text-emerald-300" : i.status === "completed" ? "bg-violet-500/20 text-violet-300" : "bg-slate-600 text-slate-400"
+                                isActive ? "bg-white/20 text-white" : i.status === "completed" ? "bg-white/10 text-white/80" : "bg-white/10 text-white/70"
                               }`}
                             >
                               {i.status}
                             </span>
                           </div>
                           {i.description && (
-                            <p className="mt-1 text-sm text-slate-400">{i.description}</p>
+                            <p className="mt-1 text-sm text-white/70">{i.description}</p>
                           )}
                           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                            <span className="text-slate-400">
+                            <span className="text-white/70">
                               {roundCount} round{roundCount !== 1 ? "s" : ""}
                             </span>
                             {!verified && (
-                              <span className="inline-flex items-center gap-1.5 text-amber-400">
-                                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-amber-400 text-[10px] font-medium">O</span>
+                              <span className="inline-flex items-center gap-1.5 text-white/60">
+                                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/60 text-[10px] font-medium">O</span>
                                 Verification needed
                               </span>
                             )}
                             {verified && (
-                              <span className="inline-flex items-center gap-1.5 text-emerald-400">Verified</span>
+                              <span className="inline-flex items-center gap-1.5 text-white">Verified</span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <span className="shrink-0 text-slate-400" aria-hidden>
+                      <span className="shrink-0 text-white/60" aria-hidden>
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>

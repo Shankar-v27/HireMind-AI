@@ -72,7 +72,7 @@ class Settings(BaseModel):
 
     # Plagiarism / AI detection (e.g. Claude API for code analysis). Set when key is provided.
     claude_api_key: str = os.getenv("CLAUDE_API_KEY", "")
-    claude_model: str = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-6")  # current; override with CLAUDE_MODEL if needed
+    claude_model: str = os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-latest")
     plagiarism_api_key: str = os.getenv("PLAGIARISM_API_KEY", "")  # alternative
     jaas_app_id: str = os.getenv("JAAS_APP_ID", "")
     jaas_api_key_id: str = os.getenv("JAAS_API_KEY_ID", "")

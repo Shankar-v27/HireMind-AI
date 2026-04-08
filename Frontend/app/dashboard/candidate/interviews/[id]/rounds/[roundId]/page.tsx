@@ -73,23 +73,23 @@ function AvatarWithWaveform({
   return (
     <div className="relative flex flex-col items-center justify-center">
       <div
-        className={`relative flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-b from-indigo-900/80 to-slate-900 shadow-lg transition-all duration-300 ${
-          active ? "ring-4 ring-green-500/60 shadow-green-500/20" : "ring-4 ring-indigo-500/30"
-        } ${isListening ? "animate-pulse ring-green-500/50" : ""}`}
+        className={`relative flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-b from-white/10 to-black shadow-lg transition-all duration-300 ${
+          active ? "ring-4 ring-white/40 shadow-white/20" : "ring-4 ring-white/20"
+        } ${isListening ? "animate-pulse ring-white/40" : ""}`}
       >
         <div className="flex flex-col items-center justify-center gap-2">
           <div className="flex gap-2">
-            <span className="h-3 w-3 rounded-full bg-slate-300" />
-            <span className="h-3 w-3 rounded-full bg-slate-300" />
+            <span className="h-3 w-3 rounded-full bg-white/60" />
+            <span className="h-3 w-3 rounded-full bg-white/60" />
           </div>
-          <div className="h-1 w-8 rounded-full bg-slate-400" />
+          <div className="h-1 w-8 rounded-full bg-white/70" />
         </div>
         {showBars && (
           <div className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 gap-0.5" aria-hidden>
             {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div
                 key={i}
-                className="w-1 rounded-full bg-green-400 transition-all duration-75"
+                className="w-1 rounded-full bg-white transition-all duration-75"
                 style={{
                   height: isSpeaking
                     ? `${12 + Math.sin(i * 0.8) * 8}px`
@@ -393,6 +393,11 @@ export default function CandidateTakeRoundPage() {
 
   const handleLeaveRound = () => {
     stop();
+    stopListening();
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     reportEvent("logout", {});
     router.push("/dashboard/candidate");
   };
@@ -432,6 +437,8 @@ export default function CandidateTakeRoundPage() {
   const micRetryCount = useRef(0);
   const micRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const MAX_MIC_RETRIES = 5;
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSpeechTimeRef = useRef<number>(Date.now());
 
   const acquireMic = useCallback(async () => {
     if (micStreamRef.current) return true;
@@ -488,6 +495,7 @@ export default function CandidateTakeRoundPage() {
           if (result.isFinal) {
             if (bestTranscript.trim()) {
               committedAddition += `${bestTranscript.trim()} `;
+              lastSpeechTimeRef.current = Date.now();
             }
           } else {
             interim += `${bestTranscript.trim()} `;
@@ -589,6 +597,43 @@ export default function CandidateTakeRoundPage() {
       acquireMic();
     }
   }, [interviewStarted, isVoiceRound, acquireMic]);
+
+  // Auto-submit response after 3 seconds of silence
+  useEffect(() => {
+    if (!isVoiceRound || !interviewStarted || techLoading || techDone || !isListening || !techResponse.trim()) {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      return;
+    }
+
+    const silenceThreshold = 3000; // 3 seconds
+    const checkSilence = () => {
+      const timeSinceLastSpeech = Date.now() - lastSpeechTimeRef.current;
+      if (timeSinceLastSpeech >= silenceThreshold && techResponse.trim()) {
+        handleTechSubmit();
+      } else {
+        silenceTimerRef.current = setTimeout(checkSilence, 500);
+      }
+    };
+
+    silenceTimerRef.current = setTimeout(checkSilence, 500);
+    return () => {
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    };
+  }, [isVoiceRound, interviewStarted, techLoading, techDone, isListening, techResponse]);
+
+  // Stop AI voice immediately when disqualified
+  useEffect(() => {
+    if (disqualified) {
+      stop();
+      stopListening();
+    }
+  }, [disqualified, stop, stopListening]);
 
   // Mic level for waveform when listening
   useEffect(() => {
@@ -733,27 +778,27 @@ export default function CandidateTakeRoundPage() {
     }
   };
 
-  if (loading && !round) return <div className="p-4 text-slate-400">Loading...</div>;
+  if (loading && !round) return <div className="p-4 text-white/60">Loading...</div>;
 
   if (isLiveRound) {
     return (
-      <main className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center p-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-6">
+      <main className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center bg-black p-6 text-white">
+        <div className="rounded-2xl border border-white/20 bg-white/5 p-6">
           <h1 className="text-2xl font-semibold text-white">Live Interview</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-white/60">
             This round is conducted as a live human interview over Jitsi.
           </p>
           {liveInfo?.meeting_url ? (
             <div className="mt-6 space-y-4">
-              <p className="text-sm text-green-400">Your interviewer has started the meeting. The meeting is embedded below.</p>
+              <p className="text-sm text-white/80">Your interviewer has started the meeting. The meeting is embedded below.</p>
               <button
                 type="button"
                 onClick={requestFullscreen}
-                className="inline-flex rounded-lg border border-sky-700 px-4 py-2 text-sm font-medium text-sky-300 hover:bg-sky-950/40"
+                className="inline-flex rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
               >
                 Enter Fullscreen
               </button>
-              <div className="rounded-lg border border-slate-700 bg-slate-900/60 p-3 text-sm text-slate-300">
+              <div className="rounded-lg border border-white/20 bg-white/5 p-3 text-sm text-white/80">
                 <p>Room: <span className="text-white">{liveInfo.room_name}</span></p>
                 <p>Provider: <span className="text-white">{liveInfo.jitsi_domain}</span></p>
               </div>
@@ -761,11 +806,11 @@ export default function CandidateTakeRoundPage() {
                 src={buildMeetingSrc(liveInfo.meeting_url, liveInfo.jitsi_jwt)}
                 title="Candidate live interview meeting"
                 allow="camera; microphone; fullscreen; display-capture"
-                className="h-[72vh] w-full rounded-lg border border-slate-800 bg-slate-900"
+                className="h-[72vh] w-full rounded-lg border border-white/20 bg-black"
               />
             </div>
           ) : (
-            <div className="mt-6 rounded-lg border border-amber-800/50 bg-amber-950/30 p-4 text-sm text-amber-200">
+            <div className="mt-6 rounded-lg border border-white/20 bg-white/5 p-4 text-sm text-white/80">
               {liveInfo?.message || "Waiting for the interviewer to start the meeting."}
             </div>
           )}
@@ -776,9 +821,9 @@ export default function CandidateTakeRoundPage() {
 
   if (submitted || (isVoiceRound && techDone)) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="rounded-xl border border-sky-800 bg-sky-950/40 p-6 text-center space-y-3">
-          <p className="text-sky-200 text-lg font-medium">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white">
+        <div className="rounded-xl border border-white/20 bg-white/5 p-6 text-center space-y-3">
+          <p className="text-white text-lg font-medium">
             {isVoiceRound && techDone ? "Voice interview completed. Thank you." : "Round submitted successfully!"}
           </p>
           {session?.total_score != null && (
@@ -787,7 +832,7 @@ export default function CandidateTakeRoundPage() {
             </p>
           )}
         </div>
-        <Link href="/dashboard/candidate" className="mt-6 text-sky-400 hover:underline">
+        <Link href="/dashboard/candidate" className="mt-6 text-white/70 underline underline-offset-4 hover:text-white">
           ← Back to dashboard
         </Link>
       </main>
@@ -796,13 +841,13 @@ export default function CandidateTakeRoundPage() {
 
   if (!preJoinDone && !loading && round && !isLiveRound) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6">
-        <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-white">
+        <div className="w-full max-w-lg rounded-2xl border border-white/20 bg-white/5 p-6">
           <h1 className="text-xl font-semibold text-white">Check your camera & microphone</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-white/60">
             Verification is done only once in the Verification section. Before joining, you can test your camera and mic like a meeting lobby.
           </p>
-          <div className="mt-6 aspect-video w-full overflow-hidden rounded-lg bg-slate-800">
+          <div className="mt-6 aspect-video w-full overflow-hidden rounded-lg border border-white/10 bg-white/5">
             <video
               ref={preJoinVideoRef}
               autoPlay
@@ -812,10 +857,10 @@ export default function CandidateTakeRoundPage() {
             />
           </div>
           <div className="mt-4 flex gap-4 text-sm">
-            <span className={preJoinCameraOk ? "text-green-400" : "text-amber-400"}>
+            <span className={preJoinCameraOk ? "text-white" : "text-white/60"}>
               {preJoinCameraOk ? "✓ Camera" : "○ Camera"}
             </span>
-            <span className={preJoinMicOk ? "text-green-400" : "text-amber-400"}>
+            <span className={preJoinMicOk ? "text-white" : "text-white/60"}>
               {preJoinMicOk ? "✓ Microphone" : "○ Microphone"}
             </span>
           </div>
@@ -823,26 +868,26 @@ export default function CandidateTakeRoundPage() {
             <button
               type="button"
               onClick={preJoinCameraTesting ? stopPreJoinCamera : startPreJoinCamera}
-              className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
             >
               {preJoinCameraTesting ? "Stop Camera Test" : "Start Camera Test"}
             </button>
             <button
               type="button"
               onClick={preJoinMicTesting ? stopPreJoinMic : startPreJoinMic}
-              className="rounded-lg border border-slate-600 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800"
+              className="rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10"
             >
               {preJoinMicTesting ? "Stop Mic Test" : "Start Mic Test"}
             </button>
           </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${Math.round(preJoinMicLevel * 100)}%` }} />
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full bg-white transition-all" style={{ width: `${Math.round(preJoinMicLevel * 100)}%` }} />
           </div>
           {preJoinError && <p className="mt-3 text-sm text-red-400">{preJoinError}</p>}
           <button
             type="button"
             onClick={handlePreJoinJoin}
-            className="mt-6 w-full rounded-xl bg-indigo-600 py-4 text-lg font-medium text-white hover:bg-indigo-500"
+            className="mt-6 w-full rounded-xl bg-white py-4 text-lg font-medium text-black hover:bg-white/90"
           >
             Continue to Round
           </button>
@@ -853,17 +898,17 @@ export default function CandidateTakeRoundPage() {
 
   if (isVoiceRound && !interviewStarted) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-white">
         <div className="w-full max-w-lg space-y-8 text-center">
           <h1 className="text-3xl font-semibold text-white">AI Interview</h1>
           <div className="flex justify-center">
             <AvatarWithWaveform isSpeaking={false} />
           </div>
-          <p className="text-slate-300">
+          <p className="text-white/80">
             You&apos;re about to have a voice conversation with our AI interviewer. Speak naturally—your microphone will
             activate when you tap the mic button after each question.
           </p>
-          <ul className="list-inside list-disc space-y-2 text-left text-sm text-slate-400">
+          <ul className="list-inside list-disc space-y-2 text-left text-sm text-white/60">
             <li>The interview will be in fullscreen mode with proctoring active</li>
             <li>The AI interviewer will speak questions to you (captions shown)</li>
             <li>Speak clearly in a quiet place so your words are captured accurately</li>
@@ -873,7 +918,7 @@ export default function CandidateTakeRoundPage() {
           <button
             type="button"
             onClick={handleEnterFullscreenAndStart}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-4 text-lg font-medium text-white hover:bg-indigo-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-4 text-lg font-medium text-black hover:bg-white/90"
           >
             <span className="text-xl">⛶</span>
             Enter Fullscreen & Start Interview
@@ -885,16 +930,16 @@ export default function CandidateTakeRoundPage() {
 
   if (isVoiceRound) {
     return (
-      <main className="flex min-h-screen flex-col bg-slate-950">
+      <main className="flex min-h-screen flex-col bg-black text-white">
         {disqualified && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95">
-            <div className="mx-4 max-w-md rounded-xl border border-red-800 bg-slate-900 p-6 text-center">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
+            <div className="mx-4 max-w-md rounded-xl border border-white/20 bg-white/5 p-6 text-center">
               <h2 className="text-xl font-semibold text-red-400">Disqualified</h2>
-              <p className="mt-2 text-sm text-slate-300">You exceeded 3 warnings and have been disqualified from this round.</p>
+              <p className="mt-2 text-sm text-white/70">You exceeded 3 warnings and have been disqualified from this round.</p>
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/candidate")}
-                className="mt-4 rounded bg-slate-600 px-4 py-2 text-sm text-white"
+                className="mt-4 rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
               >
                 Return to dashboard
               </button>
@@ -902,7 +947,7 @@ export default function CandidateTakeRoundPage() {
           </div>
         )}
 
-        <header className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+        <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-3">
             <span className="text-lg font-medium text-white">AI Interviewer</span>
             <span className={`h-2 w-2 rounded-full ${isSpeaking ? "bg-red-500 animate-pulse" : "bg-green-500"}`} />
@@ -910,7 +955,7 @@ export default function CandidateTakeRoundPage() {
           <div className="flex items-center gap-3">
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                cameraReady ? "bg-green-900/60 text-green-300" : cameraError ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-400"
+                cameraReady ? "bg-green-900/60 text-green-200" : cameraError ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"
               }`}
             >
               <span className="text-[10px]">📷</span>
@@ -918,7 +963,7 @@ export default function CandidateTakeRoundPage() {
             </span>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                faceVisible === true ? "bg-green-900/60 text-green-300" : faceVisible === false ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-400"
+                faceVisible === true ? "bg-green-900/60 text-green-200" : faceVisible === false ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"
               }`}
             >
               <span className="text-[10px]">👁</span>
@@ -926,22 +971,22 @@ export default function CandidateTakeRoundPage() {
             </span>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                identityMatch === true ? "bg-green-900/60 text-green-300" : identityMatch === false ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-400"
+                identityMatch === true ? "bg-green-900/60 text-green-200" : identityMatch === false ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"
               }`}
             >
               <span className="text-[10px]">🪪</span>
               {identityMatch === true ? `Identity OK${identityConfidence != null ? ` ${Math.round(identityConfidence * 100)}%` : ""}` : identityMatch === false ? "Identity Mismatch" : "Identity…"}
             </span>
-            <button type="button" onClick={handleLeaveRound} className="text-sm text-slate-400 hover:text-white">
+            <button type="button" onClick={handleLeaveRound} className="text-sm text-white/60 hover:text-white">
               Leave
             </button>
           </div>
         </header>
 
         {warningMessage && !disqualified && (
-          <div className="flex items-center justify-between border-b border-amber-800/50 bg-amber-950/30 px-4 py-2 text-amber-200">
+          <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-2 text-white">
             <span className="text-sm">⚠ {warningMessage}</span>
-            <button type="button" onClick={() => setWarningMessage(null)} className="text-amber-400 hover:underline">
+            <button type="button" onClick={() => setWarningMessage(null)} className="text-white/70 underline underline-offset-4 hover:text-white">
               Dismiss
             </button>
           </div>
@@ -955,14 +1000,14 @@ export default function CandidateTakeRoundPage() {
             </p>
             <p className="mt-2 text-center text-sm">
               {isSpeaking ? (
-                <span className="text-indigo-400">SPEAKING…</span>
+                <span className="text-white/70">SPEAKING…</span>
               ) : techLoading ? (
-                <span className="text-slate-500">…</span>
+                <span className="text-white/40">…</span>
               ) : (
                 <>
-                  <span className="text-green-500/90">LISTENING</span>
-                  <span className="mx-1.5 text-slate-500">—</span>
-                  <span className="text-green-400 font-medium">SPEAK NOW</span>
+                  <span className="text-white/70">LISTENING</span>
+                  <span className="mx-1.5 text-white/40">—</span>
+                  <span className="text-white font-medium">SPEAK NOW</span>
                 </>
               )}
             </p>
@@ -970,25 +1015,25 @@ export default function CandidateTakeRoundPage() {
               <button
                 type="button"
                 onClick={() => speak(techCurrentQuestion)}
-                className="mx-auto mt-2 block text-xs text-indigo-400 hover:underline"
+                className="mx-auto mt-2 block text-xs text-white/70 underline underline-offset-4 hover:text-white"
               >
                 Replay question
               </button>
             )}
           </div>
           {techAnalysis && (
-            <p className="mt-4 max-w-xl text-center text-sm text-amber-200/90">Feedback: {techAnalysis}</p>
+            <p className="mt-4 max-w-xl text-center text-sm text-white/70">Feedback: {techAnalysis}</p>
           )}
         </div>
 
-        <div className="border-t border-slate-800 px-4 py-6">
+        <div className="border-t border-white/10 px-4 py-6">
           <div className="mx-auto flex max-w-2xl flex-col items-center gap-4">
             {error && <p className="w-full text-center text-sm text-red-400">{error}</p>}
             {/* Heard: live transcript (reference-style) */}
             <div className="w-full">
-              <div className="rounded-lg border border-green-800/60 bg-green-950/40 px-4 py-3">
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-green-400/90">Heard:</p>
-                <p className="min-h-[2.5rem] text-sm text-green-100 whitespace-pre-wrap">
+              <div className="rounded-lg border border-white/20 bg-white/5 px-4 py-3">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-white/60">Heard:</p>
+                <p className="min-h-[2.5rem] text-sm text-white whitespace-pre-wrap">
                   {techResponse || (isListening ? "…" : "")}
                 </p>
               </div>
@@ -1014,37 +1059,37 @@ export default function CandidateTakeRoundPage() {
                   placeholder="Type your answer or use the mic"
                   value={techResponse}
                   onChange={(e) => setTechResponse(e.target.value)}
-                  className="min-h-[44px] flex-1 rounded-lg border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-white placeholder-slate-500"
+                  className="min-h-[44px] flex-1 rounded-lg border border-white/20 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/40"
                   readOnly={techLoading || techDone}
                   rows={2}
                 />
                 <button
                   type="submit"
                   disabled={techLoading || !techResponse.trim() || techDone}
-                  className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50"
                 >
                   Send
                 </button>
               </form>
             </div>
-            <p className="text-xs text-slate-500">Speak clearly in a quiet place. What you say appears in &quot;Heard&quot; above. Edit if needed, then press Send.</p>
+            <p className="text-xs text-white/50">Speak clearly in a quiet place. What you say appears in &quot;Heard&quot; above. Edit if needed, then press Send.</p>
           </div>
         </div>
       </main>
     );
   }
 
-  if (loading) return <div className="p-4 text-slate-400">Loading...</div>;
+  if (loading) return <div className="p-4 text-white/60">Loading...</div>;
 
   if (!isVoiceRound && !isLiveRound && !roundStarted) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6">
-        <div className="w-full max-w-xl space-y-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-black p-6 text-white">
+        <div className="w-full max-w-xl space-y-6 rounded-2xl border border-white/20 bg-white/5 p-8 text-center">
           <h1 className="text-3xl font-semibold text-white">Assessment Monitoring</h1>
-          <p className="text-sm text-slate-300">
+          <p className="text-sm text-white/80">
             This round requires fullscreen mode and continuous camera monitoring. The person attending will be checked against the verified candidate photo.
           </p>
-          <ul className="list-inside list-disc space-y-2 text-left text-sm text-slate-400">
+          <ul className="list-inside list-disc space-y-2 text-left text-sm text-white/60">
             <li>Leaving fullscreen counts as a warning</li>
             <li>Camera access is compulsory for aptitude and coding rounds</li>
             <li>The face in camera must match the verified candidate</li>
@@ -1053,7 +1098,7 @@ export default function CandidateTakeRoundPage() {
           <button
             type="button"
             onClick={handleEnterFullscreenAndStartAssessment}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-4 text-lg font-medium text-white hover:bg-indigo-500"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-4 text-lg font-medium text-black hover:bg-white/90"
           >
             <span className="text-xl">⛶</span>
             Enter Fullscreen & Start Round
@@ -1064,16 +1109,22 @@ export default function CandidateTakeRoundPage() {
   }
 
   return (
-    <main className="space-y-8 p-4">
+    <main className="min-h-screen space-y-8 bg-black p-4 text-white">
       {disqualified && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95">
-          <div className="mx-4 max-w-md rounded-xl border border-red-800 bg-slate-900 p-6 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
+          <div className="mx-4 max-w-md rounded-xl border border-white/20 bg-white/5 p-6 text-center">
             <h2 className="text-xl font-semibold text-red-400">Disqualified</h2>
-            <p className="mt-2 text-slate-300">You exceeded 3 warnings and have been disqualified from this round.</p>
+            <p className="mt-2 text-white/70">You exceeded 3 warnings and have been disqualified from this round.</p>
             <button
               type="button"
-              onClick={() => router.push("/dashboard/candidate")}
-              className="mt-4 rounded bg-slate-600 px-4 py-2 text-sm text-white"
+              onClick={() => {
+                if (silenceTimerRef.current) {
+                  clearTimeout(silenceTimerRef.current);
+                  silenceTimerRef.current = null;
+                }
+                router.push("/dashboard/candidate");
+              }}
+              className="mt-4 rounded bg-white px-4 py-2 text-sm font-medium text-black hover:bg-white/90"
             >
               Return to dashboard
             </button>
@@ -1081,31 +1132,35 @@ export default function CandidateTakeRoundPage() {
         </div>
       )}
       {warningMessage && !disqualified && (
-        <div className="flex items-center justify-between rounded-lg border border-amber-700 bg-amber-950/50 px-4 py-3 text-amber-200">
+        <div className="flex items-center justify-between rounded-lg border border-white/20 bg-white/5 px-4 py-3 text-white">
           <span className="text-sm">⚠ {warningMessage}</span>
-          <button type="button" onClick={() => setWarningMessage(null)} className="text-amber-400 hover:underline">
+          <button type="button" onClick={() => setWarningMessage(null)} className="text-white/70 underline underline-offset-4 hover:text-white">
             Dismiss
           </button>
         </div>
       )}
-      <header className="flex items-center justify-between">
-        <button type="button" onClick={handleLeaveRound} className="text-sky-400 hover:underline">
-          ← Leave round
-        </button>
-        <h1 className="text-2xl font-semibold">{round?.type ? `${round.type} — Order ${round.order}` : `Round ${roundId}`}</h1>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          <button type="button" onClick={handleLeaveRound} className="w-fit text-white/70 underline underline-offset-4 hover:text-white">
+            ← Leave round
+          </button>
+          <h1 className="text-2xl font-semibold text-white leading-tight break-words">
+            {round?.type ? `${round.type} — Order ${round.order}` : `Round ${roundId}`}
+          </h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {proctoringEnabled && (
-            <span className={`text-sm ${strikes >= 3 ? "text-red-400 font-semibold" : "text-slate-400"}`}>
+            <span className={`text-sm ${strikes >= 3 ? "text-red-400 font-semibold" : "text-white/60"}`}>
               Warnings: {strikes}/3{strikes >= 3 && " — FINAL"}
             </span>
           )}
-          <span className={`rounded-full px-3 py-1 text-xs ${cameraReady ? "bg-green-900/60 text-green-300" : cameraError ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-300"}`}>
+          <span className={`rounded-full px-3 py-1 text-xs ${cameraReady ? "bg-green-900/60 text-green-200" : cameraError ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"}`}>
             {cameraReady ? "Camera OK" : cameraError ? "Camera Required" : "Camera…"}
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs ${faceVisible === true ? "bg-green-900/60 text-green-300" : faceVisible === false ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-300"}`}>
+          <span className={`rounded-full px-3 py-1 text-xs ${faceVisible === true ? "bg-green-900/60 text-green-200" : faceVisible === false ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"}`}>
             {faceVisible === true ? "Face OK" : faceVisible === false ? "No Face" : "Checking Face"}
           </span>
-          <span className={`rounded-full px-3 py-1 text-xs ${identityMatch === true ? "bg-green-900/60 text-green-300" : identityMatch === false ? "bg-red-900/60 text-red-300" : "bg-slate-700 text-slate-300"}`}>
+          <span className={`rounded-full px-3 py-1 text-xs ${identityMatch === true ? "bg-green-900/60 text-green-200" : identityMatch === false ? "bg-red-900/60 text-red-200" : "bg-white/10 text-white/60"}`}>
             {identityMatch === true ? `Identity OK${identityConfidence != null ? ` ${Math.round(identityConfidence * 100)}%` : ""}` : identityMatch === false ? "Identity Mismatch" : "Identity Check"}
           </span>
         </div>
@@ -1118,27 +1173,27 @@ export default function CandidateTakeRoundPage() {
       )}
       <form onSubmit={handleSubmit} className="space-y-6">
         {questions.map((q, idx) => (
-          <div key={q.id} className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+          <div key={q.id} className="rounded-xl border border-white/20 bg-white/5 p-4">
             {(() => {
               const questionType = (q.type || "").toLowerCase();
               const mcqOptions = questionType === "mcq" ? parseMcqOptions(q) : [];
               return (
                 <>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-slate-300">
+              <p className="text-sm font-medium text-white/80">
                 Question {idx + 1}
-                <span className="ml-2 text-xs text-slate-500">({questionType || q.type})</span>
-                {q.max_score && <span className="ml-2 text-xs text-sky-400">[{q.max_score} pts]</span>}
+                <span className="ml-2 text-xs text-white/50">({questionType || q.type})</span>
+                {q.max_score && <span className="ml-2 text-xs text-white/60">[{q.max_score} pts]</span>}
               </p>
-              {q.difficulty && <span className="text-xs text-amber-400">{q.difficulty}</span>}
+              {q.difficulty && <span className="text-xs text-white/60">{q.difficulty}</span>}
             </div>
-            <p className="mb-3 whitespace-pre-wrap text-slate-200">{q.content}</p>
+            <p className="mb-3 whitespace-pre-wrap text-white/90">{q.content}</p>
 
             {/* MCQ Options */}
             {questionType === "mcq" && mcqOptions.length > 0 && (
               <div className="mb-3 space-y-2">
                 {mcqOptions.map(([key, val]) => (
-                  <label key={key} className="flex items-center gap-2 rounded border border-slate-700 px-3 py-2 cursor-pointer hover:bg-slate-800/50">
+                  <label key={key} className="flex items-center gap-2 rounded border border-white/20 bg-white/5 px-3 py-2 cursor-pointer hover:bg-white/10">
                     <input type="radio" name={`q-${q.id}`} value={key}
                       checked={answers[q.id] === key}
                       onChange={() => {
@@ -1152,7 +1207,7 @@ export default function CandidateTakeRoundPage() {
               </div>
             )}
             {questionType === "mcq" && mcqOptions.length === 0 && (
-              <p className="mb-3 text-sm text-amber-300">Options are missing for this MCQ. Regenerate or update the question.</p>
+              <p className="mb-3 text-sm text-white/70">Options are missing for this MCQ. Regenerate or update the question.</p>
             )}
 
             {/* Coding */}
@@ -1161,18 +1216,18 @@ export default function CandidateTakeRoundPage() {
                 <div className="flex gap-2 items-center">
                   <select value={codeLang[q.id] || "python"}
                     onChange={(e) => setCodeLang((l) => ({ ...l, [q.id]: e.target.value }))}
-                    className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs">
+                    className="dark-native rounded border border-white/20 bg-white/5 px-2 py-1 text-xs text-white">
                     <option value="python">Python</option>
                     <option value="javascript">JavaScript</option>
                     <option value="cpp">C++</option>
                     <option value="java">Java</option>
                   </select>
                   <button type="button" onClick={() => handleRunCode(q.id)}
-                    className="rounded bg-green-700 px-3 py-1 text-xs text-white hover:bg-green-600">
+                    className="rounded bg-white px-3 py-1 text-xs font-medium text-black hover:bg-white/90">
                     Run Code
                   </button>
                   <button type="button" onClick={() => handleSaveAnswer(q.id)}
-                    className="rounded bg-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-600">
+                    className="rounded bg-white/10 px-3 py-1 text-xs font-medium text-white hover:bg-white/15">
                     Save
                   </button>
                 </div>
@@ -1182,24 +1237,24 @@ export default function CandidateTakeRoundPage() {
                   onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
                   onKeyDown={handleCodeEditorKeyDown(q.id)}
                   onBlur={() => handleSaveAnswer(q.id)}
-                  className="min-h-[220px] w-full rounded border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm leading-6 [tab-size:4]"
+                  className="min-h-[220px] w-full rounded border border-white/20 bg-black px-4 py-3 font-mono text-sm leading-6 [tab-size:4]"
                   readOnly={disqualified} spellCheck={false} />
                 {runResults[q.id] && (
-                  <div className="rounded border border-slate-700 bg-slate-900/80 p-3 text-xs">
+                  <div className="rounded border border-white/20 bg-white/5 p-3 text-xs">
                     <p className={runResults[q.id].failed === 0 ? "text-green-400" : "text-amber-400"}>
                       Test Results: {runResults[q.id].passed}/{runResults[q.id].total} passed
                     </p>
                     {runResults[q.id].results.map((r: any, i: number) => (
                       <div key={i} className={`mt-1 ${r.passed ? "text-green-400" : "text-red-400"}`}>
                         Test {i + 1}: {r.passed ? "PASS" : "FAIL"}
-                        {r.error && <span className="text-slate-400 ml-2">{r.error}</span>}
+                        {r.error && <span className="text-white/60 ml-2">{r.error}</span>}
                       </div>
                     ))}
                   </div>
                 )}
                 {q.test_cases?.public && q.test_cases.public.length > 0 && (
-                  <div className="rounded border border-slate-700 bg-slate-900/50 p-2 text-xs text-slate-400">
-                    <p className="font-medium text-slate-300 mb-1">Sample Test Cases:</p>
+                  <div className="rounded border border-white/20 bg-white/5 p-2 text-xs text-white/60">
+                    <p className="font-medium text-white/80 mb-1">Sample Test Cases:</p>
                     {q.test_cases.public.slice(0, 3).map((tc, i) => (
                       <div key={i}>Input: <code>{tc.input}</code> → Expected: <code>{tc.expected}</code></div>
                     ))}
@@ -1215,7 +1270,7 @@ export default function CandidateTakeRoundPage() {
                 value={answers[q.id] ?? ""}
                 onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
                 onBlur={() => handleSaveAnswer(q.id)}
-                className="min-h-[100px] w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                className="min-h-[100px] w-full rounded border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40"
                 readOnly={disqualified} />
             )}
                 </>
@@ -1226,7 +1281,7 @@ export default function CandidateTakeRoundPage() {
         <button
           type="submit"
           disabled={submitting || !questions.length || disqualified}
-          className="rounded bg-sky-600 px-6 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+          className="rounded bg-white px-6 py-2 text-sm font-medium text-black hover:bg-white/90 disabled:opacity-50"
         >
           {submitting ? "Submitting & Grading..." : "Submit Round"}
         </button>

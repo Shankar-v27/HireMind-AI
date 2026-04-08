@@ -296,7 +296,7 @@ export default function CandidateVerificationPage() {
   const isApproved = verification?.status === "approved";
   const verificationRequired = searchParams.get("required") === "1";
 
-  if (loading) return <div className="p-4 text-slate-400">Loading...</div>;
+  if (loading) return <div className="p-4 text-white/70">Loading...</div>;
 
   const idOnFile = !!verification?.id_proof_url;
   const photoOnFile = !!verification?.photo_url;
@@ -307,11 +307,11 @@ export default function CandidateVerificationPage() {
       <header>
         <h1 className="text-2xl font-bold text-white">Identity Verification</h1>
         {verificationRequired && (
-          <p className="mt-2 rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2 text-sm text-amber-200">
+          <p className="mt-2 rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-sm text-white/80">
             Verification is required before entering rounds. Please complete ID, Photo capture, and Resume here.
           </p>
         )}
-        <p className="mt-1 text-slate-300">
+        <p className="mt-1 text-white/70">
           {verification?.id_proof_url && verification?.resume_url
             ? "Your ID and resume are on file. Please take a new photo to verify your identity for this interview."
             : "Complete the steps below to verify your identity and access interview rounds."}
@@ -325,86 +325,86 @@ export default function CandidateVerificationPage() {
           onClick={() => setStep("id")}
           className={`flex flex-col items-center justify-center rounded-xl border px-4 py-5 text-center transition ${
             step === "id"
-              ? "border-slate-600 bg-slate-800/80 text-white"
+              ? "border-white/20 bg-white/10 text-white"
               : idOnFile
-                ? "border-emerald-800/60 bg-emerald-950/50 text-emerald-200"
-                : "border-slate-700 bg-slate-900/50 text-slate-400 hover:border-slate-600"
+                ? "border-white/20 bg-white/5 text-white"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
           }`}
         >
           {idOnFile ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">✓</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white">✓</span>
           ) : (
             <span className="text-2xl">🪪</span>
           )}
           <span className="mt-2 font-medium">ID Proof</span>
-          <span className="mt-1 text-xs">{idOnFile ? "On file" : "Required"}</span>
+          <span className="mt-1 text-xs text-white/60">{idOnFile ? "On file" : "Required"}</span>
         </button>
         <button
           type="button"
           onClick={() => setStep("photo")}
           className={`flex flex-col items-center justify-center rounded-xl border px-4 py-5 text-center transition ${
             step === "photo"
-              ? "border-slate-600 bg-slate-800/80 text-white"
+              ? "border-white/20 bg-white/10 text-white"
               : photoOnFile
-                ? "border-emerald-800/60 bg-emerald-950/50 text-emerald-200"
-                : "border-slate-700 bg-slate-900/50 text-slate-400 hover:border-slate-600"
+                ? "border-white/20 bg-white/5 text-white"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
           }`}
         >
           {photoOnFile ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">✓</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white">✓</span>
           ) : (
-            <svg className="h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-8 w-8 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 13v7a2 2 0 01-2 2H7a2 2 0 01-2-2v-7" />
             </svg>
           )}
           <span className="mt-2 font-medium">Photo</span>
-          <span className="mt-1 text-xs">{photoOnFile ? "On file" : "Required"}</span>
+          <span className="mt-1 text-xs text-white/60">{photoOnFile ? "On file" : "Required"}</span>
         </button>
         <button
           type="button"
           onClick={() => setStep("resume")}
           className={`flex flex-col items-center justify-center rounded-xl border px-4 py-5 text-center transition ${
             step === "resume"
-              ? "border-slate-600 bg-slate-800/80 text-white"
+              ? "border-white/20 bg-white/10 text-white"
               : resumeOnFile
-                ? "border-emerald-800/60 bg-emerald-950/50 text-emerald-200"
-                : "border-slate-700 bg-slate-900/50 text-slate-400 hover:border-slate-600"
+                ? "border-white/20 bg-white/5 text-white"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20"
           }`}
         >
           {resumeOnFile ? (
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">✓</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white">✓</span>
           ) : (
             <span className="text-2xl">📄</span>
           )}
           <span className="mt-2 font-medium">Resume</span>
-          <span className="mt-1 text-xs">{resumeOnFile ? "On file" : "Optional"}</span>
+          <span className="mt-1 text-xs text-white/60">{resumeOnFile ? "On file" : "Optional"}</span>
         </button>
       </div>
 
-      {error && step !== "photo" && <p className="rounded bg-red-950/50 px-3 py-2 text-sm text-red-300">{error}</p>}
+      {error && step !== "photo" && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-500">{error}</p>}
 
       {isApproved ? (
-        <section className="space-y-4 rounded-xl border border-green-800/60 bg-green-950/30 p-6">
-          <h2 className="text-lg font-medium text-green-200">Verification Approved</h2>
-          <p className="text-slate-300">You are verified and can access all interview rounds.</p>
+        <section className="space-y-4 rounded-xl border border-white/20 bg-white/5 p-6">
+          <h2 className="text-lg font-medium text-white">Verification Approved</h2>
+          <p className="text-white/70">You are verified and can access all interview rounds.</p>
           {faceMatch != null && (
-            <div className="rounded-lg border border-green-700/50 bg-slate-900/50 p-4">
-              <p className="font-medium text-green-300">
+            <div className="rounded-lg border border-white/20 bg-white/10 p-4">
+              <p className="font-medium text-white">
                 Face Match: Verified ({Math.round((faceMatch.confidence ?? 0) * 100)}% confidence)
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-white/70">
                 Strong facial feature alignment. You can proceed to HR and other rounds.
               </p>
             </div>
           )}
           {idNameCheck?.checked && (
-            <div className="rounded-lg border border-green-700/50 bg-slate-900/50 p-4">
-              <p className="font-medium text-green-300">
+            <div className="rounded-lg border border-white/20 bg-white/5 p-4">
+              <p className="font-medium text-white">
                 ID Name Check: {idNameCheck.match === false ? "Needs review" : "Verified"}
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-white/70">
                 Candidate profile: {idNameCheck.expected_name || "—"} | ID document: {idNameCheck.extracted_name || "Could not extract"}
               </p>
             </div>
@@ -416,44 +416,44 @@ export default function CandidateVerificationPage() {
             <section className="rounded-xl border border-amber-800/60 bg-amber-950/30 p-6">
               <h2 className="mb-2 text-lg font-medium text-amber-200">Verification Review</h2>
               {faceMatch != null && (
-                <p className="text-sm text-slate-300">
+                <p className="text-sm text-white/70">
                   Face match confidence: {Math.round((faceMatch.confidence ?? 0) * 100)}%
                 </p>
               )}
               {idNameCheck?.checked && (
-                <p className="mt-2 text-sm text-slate-300">
+                <p className="mt-2 text-sm text-white/70">
                   Name on ID: {idNameCheck.extracted_name || "Unreadable"} | Profile name: {idNameCheck.expected_name || "—"} | Match: {idNameCheck.match === false ? "No" : "Yes / Needs review"}
                 </p>
               )}
             </section>
           )}
           {step === "id" && (
-            <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-6">
-              <h2 className="mb-2 text-lg font-medium">ID Proof</h2>
-              <p className="mb-4 text-sm text-slate-400">
+            <section className="rounded-xl border border-white/20 bg-white/5 p-6">
+              <h2 className="mb-2 text-lg font-medium text-white">ID Proof</h2>
+              <p className="mb-4 text-sm text-white/70">
                 Upload a government-issued ID (passport, driver&apos;s license, etc.). JPG, PNG, or PDF (max 10MB).
               </p>
-              <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-600 bg-slate-900/50 p-6 transition hover:border-sky-600">
+              <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 bg-white/10 p-6 transition hover:border-white/30">
                 <input
                   type="file"
                   accept=".jpg,.jpeg,.png,.pdf"
                   className="hidden"
                   onChange={handleIdChange}
                 />
-                <span className="text-3xl text-slate-500">↑</span>
-                <span className="mt-2 text-sm text-slate-400">Click to upload ID proof</span>
-                {idFile && <span className="mt-1 text-xs text-sky-400">{idFile.name}</span>}
+                <span className="text-3xl text-white/50">↑</span>
+                <span className="mt-2 text-sm text-white/70">Click to upload ID proof</span>
+                {idFile && <span className="mt-1 text-xs text-white">{idFile.name}</span>}
               </label>
               {idPreview && idFile?.type.startsWith("image/") && (
-                <img src={idPreview} alt="ID preview" className="mt-4 max-h-40 rounded border border-slate-700 object-contain" />
+                <img src={idPreview} alt="ID preview" className="mt-4 max-h-40 rounded border border-white/20 object-contain" />
               )}
             </section>
           )}
 
           {step === "photo" && (
-            <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-6">
+            <section className="rounded-xl border border-white/20 bg-white/5 p-6">
               <h2 className="mb-2 text-lg font-medium text-white">Photo</h2>
-              <p className="mb-4 text-sm text-slate-400">
+              <p className="mb-4 text-sm text-white/70">
                 Take a webcam photo or upload a photo of yourself
               </p>
               {/* Video always in DOM on photo step so ref exists when we attach stream */}
@@ -463,7 +463,7 @@ export default function CandidateVerificationPage() {
                   autoPlay
                   playsInline
                   muted
-                  className={`w-full rounded-lg border border-slate-700 bg-black object-cover object-center ${cameraStarted ? "block" : "hidden"}`}
+                  className={`w-full rounded-lg border border-white/20 bg-black object-cover object-center ${cameraStarted ? "block" : "hidden"}`}
                   style={{ aspectRatio: "1" }}
                   onLoadedMetadata={() => setVideoReady(true)}
                   onCanPlay={() => setVideoReady(true)}
@@ -477,15 +477,15 @@ export default function CandidateVerificationPage() {
               </div>
               {!cameraStarted ? (
                 <div className="space-y-4">
-                  <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-600 bg-slate-900/50 p-8">
-                    <svg className="h-16 w-16 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex min-h-[280px] flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 bg-white/10 p-8">
+                    <svg className="h-16 w-16 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <svg className="mt-4 h-10 w-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="mt-4 h-10 w-10 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     </svg>
-                    <p className="mt-4 text-sm font-medium text-slate-300">Live webcam photo required</p>
-                    <p className="mt-1 text-xs text-slate-500">Photo uploads are not accepted</p>
+                    <p className="mt-4 text-sm font-medium text-white">Live webcam photo required</p>
+                    <p className="mt-1 text-xs text-white/70">Photo uploads are not accepted</p>
                   </div>
                   {error && (
                     <p className="rounded-lg border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-sm text-amber-200">
@@ -497,7 +497,7 @@ export default function CandidateVerificationPage() {
                       type="button"
                       onClick={() => void startCamera(selectedDeviceId ?? undefined)}
                       disabled={cameraLoading || retryCountdown > 0}
-                      className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-lg bg-white text-black px-4 py-2.5 text-sm font-medium hover:bg-white/90 disabled:opacity-50"
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -520,7 +520,7 @@ export default function CandidateVerificationPage() {
                 <div className="mx-auto max-w-md space-y-3">
                   {videoDevices.length > 1 && (
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-400">Camera</label>
+                      <label className="text-xs font-medium text-white/70">Camera</label>
                       <select
                         value={selectedDeviceId ?? ""}
                         onChange={(e) => {
@@ -528,7 +528,7 @@ export default function CandidateVerificationPage() {
                           setSelectedDeviceId(id);
                           startCamera(id);
                         }}
-                        className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                        className="dark-native rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
                       >
                         {videoDevices.map((d) => (
                           <option key={d.deviceId} value={d.deviceId}>
@@ -536,10 +536,10 @@ export default function CandidateVerificationPage() {
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-slate-500">If you see an avatar or virtual camera, choose your real webcam above.</p>
+                      <p className="text-xs text-white/70">If you see an avatar or virtual camera, choose your real webcam above.</p>
                     </div>
                   )}
-                  <p className="text-center text-xs text-slate-400">Align your face within the outline</p>
+                  <p className="text-center text-xs text-white/70">Align your face within the outline</p>
                   <div className="mt-4 flex flex-col items-center gap-2">
                     {!videoReady && !error && (
                       <p className="text-xs text-amber-400">{cameraLoading ? "Starting camera…" : "Waiting for camera…"}</p>
@@ -565,8 +565,8 @@ export default function CandidateVerificationPage() {
                   </div>
                   {photoDataUrl && (
                     <div className="mt-4">
-                      <p className="mb-2 text-xs text-slate-400">Captured photo:</p>
-                      <img src={photoDataUrl} alt="Captured" className="mx-auto max-h-32 rounded border border-slate-700" />
+                      <p className="mb-2 text-xs text-white/70">Captured photo:</p>
+                      <img src={photoDataUrl} alt="Captured" className="mx-auto max-h-32 rounded border border-white/20" />
                     </div>
                   )}
                 </div>
@@ -575,12 +575,12 @@ export default function CandidateVerificationPage() {
           )}
 
           {step === "resume" && (
-            <section className="rounded-xl border border-slate-800 bg-slate-950/60 p-6">
-              <h2 className="mb-2 text-lg font-medium">Resume</h2>
-              <p className="mb-4 text-sm text-slate-400">
+            <section className="rounded-xl border border-white/20 bg-white/5 p-6">
+              <h2 className="mb-2 text-lg font-medium text-white">Resume</h2>
+              <p className="mb-4 text-sm text-white/70">
                 Upload your resume (PDF, DOC, DOCX, or image) for your profile.
               </p>
-              <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-600 bg-slate-900/50 p-6 transition hover:border-sky-600">
+              <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/20 bg-white/10 p-6 transition hover:border-white/30">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
@@ -595,21 +595,21 @@ export default function CandidateVerificationPage() {
                     setError(null);
                   }}
                 />
-                <span className="text-3xl text-slate-500">📄</span>
-                <span className="mt-2 text-sm text-slate-400">
+                <span className="text-3xl text-white/50">📄</span>
+                <span className="mt-2 text-sm text-white/70">
                   {resumeFile ? resumeFile.name : "Click to upload resume"}
                 </span>
                 {resumeFile && (
-                  <span className="mt-1 text-xs text-green-400">File selected</span>
+                  <span className="mt-1 text-xs text-white">File selected</span>
                 )}
               </label>
-              <p className="mt-3 text-xs text-slate-500">Or paste a URL instead:</p>
+              <p className="mt-3 text-xs text-white/70">Or paste a URL instead:</p>
               <input
                 type="url"
                 placeholder="Resume URL (optional)"
                 value={resumeUrl}
                 onChange={(e) => setResumeUrl(e.target.value)}
-                className="mt-1 w-full rounded border border-slate-700 bg-slate-900 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded border border-white/20 bg-white/10 px-3 py-2 text-sm text-white"
               />
             </section>
           )}
@@ -619,7 +619,7 @@ export default function CandidateVerificationPage() {
               type="button"
               onClick={() => setStep(STEPS[Math.max(0, STEPS.findIndex((s) => s.key === step) - 1)].key)}
               disabled={step === "id"}
-              className="rounded-lg border border-slate-600 bg-slate-800/80 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-slate-700/80"
+              className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-white/20"
             >
               Previous
             </button>
@@ -627,7 +627,7 @@ export default function CandidateVerificationPage() {
               <button
                 type="button"
                 onClick={() => setStep(STEPS[STEPS.findIndex((s) => s.key === step) + 1].key)}
-                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
+                className="rounded-lg bg-white text-black px-4 py-2 text-sm font-medium hover:bg-white/90"
               >
                 Next
               </button>
@@ -636,7 +636,7 @@ export default function CandidateVerificationPage() {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !idFile || !photoDataUrl}
-                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+                className="rounded-lg bg-white text-black px-4 py-2 text-sm font-medium hover:bg-white/90 disabled:opacity-50"
               >
                 {submitting ? "Submitting…" : "Submit verification"}
               </button>

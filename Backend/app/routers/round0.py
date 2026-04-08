@@ -457,6 +457,35 @@ def _extract_resume_text_from_bytes(content: bytes, filename: str, settings) -> 
     return extract_resume_text(data_url)
 
 
+def _is_model_not_found_error(err: Exception) -> bool:
+    msg = str(err).lower()
+    return "not_found_error" in msg or ("model" in msg and "not found" in msg)
+
+
+def _is_retryable_claude_error(err: Exception) -> bool:
+    status_code = getattr(err, "status_code", None)
+    response = getattr(err, "response", None)
+    if status_code is None and response is not None:
+        status_code = getattr(response, "status_code", None)
+
+    if isinstance(status_code, int) and status_code in {408, 409, 425, 429, 500, 502, 503, 504, 529}:
+        return True
+
+    msg = str(err).lower()
+    retry_markers = (
+        "529",
+        "overloaded",
+        "rate limit",
+        "rate_limit",
+        "timeout",
+        "temporarily unavailable",
+        "internal server error",
+        "connection error",
+        "api_error",
+    )
+    return any(marker in msg for marker in retry_markers)
+
+
 def _evaluate_with_claude(job_title: str, job_description: str, resume_text: str, settings) -> dict[str, Any]:
     import anthropic
 
@@ -464,17 +493,17 @@ def _evaluate_with_claude(job_title: str, job_description: str, resume_text: str
         raise HTTPException(status_code=500, detail="CLAUDE_API_KEY missing")
 
     model_candidates = [
-        os.getenv("CLAUDE_MODEL"),
+        os.getenv("CLAUDE_MODEL") or "claude-3-5-sonnet-latest",
         os.getenv("ANTHROPIC_MODEL"),
-        "claude-sonnet-4-6",
-        "claude-3-7-sonnet-latest",
         "claude-3-5-sonnet-latest",
-        "claude-3-5-sonnet-20241022",
+        "claude-3-7-sonnet-latest",
+        "claude-sonnet-4-6",
     ]
     models = [m for i, m in enumerate(model_candidates) if m and m not in model_candidates[:i]]
 
     max_tokens = max(300, int(os.getenv("CLAUDE_MAX_TOKENS", "700")))
     max_chars = max(4000, int(os.getenv("RESUME_MAX_CHARS", "12000")))
+    max_retries = max(0, int(os.getenv("CLAUDE_MAX_RETRIES", "4")))
 
     prompt = (
         "You are an AI evaluation engine for Hiremind.\n\n"
@@ -505,23 +534,47 @@ def _evaluate_with_claude(job_title: str, job_description: str, resume_text: str
     last_err: Exception | None = None
 
     for model in models:
-        try:
-            res = client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                temperature=0,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            content = res.content or []
-            text_block = next((c for c in content if getattr(c, "type", "") == "text"), None)
-            raw = text_block.text if text_block else ""
-            return _parse_claude_json(raw)
-        except Exception as e:
-            last_err = e
-            msg = str(e).lower()
-            if "not_found_error" in msg or "model:" in msg or "model" in msg and "not found" in msg:
-                continue
-            raise
+        for attempt in range(max_retries + 1):
+            try:
+                res = client.messages.create(
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                content = res.content or []
+                text_block = next((c for c in content if getattr(c, "type", "") == "text"), None)
+                raw = text_block.text if text_block else ""
+                return _parse_claude_json(raw)
+            except Exception as e:
+                last_err = e
+
+                if _is_model_not_found_error(e):
+                    break
+
+                if _is_retryable_claude_error(e):
+                    if attempt < max_retries:
+                        delay_s = min(8.0, 0.8 * (2 ** attempt))
+                        print(
+                            f"[Round0] Claude transient failure for model={model} "
+                            f"attempt={attempt + 1}/{max_retries + 1}; retrying in {delay_s:.1f}s. err={e}"
+                        )
+                        time.sleep(delay_s)
+                        continue
+                    # Exhausted retries for this model; try the next configured model.
+                    print(f"[Round0] Claude retries exhausted for model={model}. err={e}")
+                    break
+
+                raise
+
+    if last_err and _is_retryable_claude_error(last_err):
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Claude API is temporarily overloaded. Please retry shortlist in a few seconds. "
+                f"Last error: {last_err}"
+            ),
+        )
 
     raise HTTPException(status_code=502, detail=f"No valid Claude model found. Last error: {last_err}")
 
@@ -658,6 +711,11 @@ def round0_shortlist(
                     payload=raw_eval,
                 )
                 db.add(cache_row)
+
+                # Small throttle helps avoid provider overload on bulk shortlist batches.
+                inter_req_delay_ms = max(0, int(os.getenv("CLAUDE_INTER_REQUEST_DELAY_MS", "250")))
+                if inter_req_delay_ms:
+                    time.sleep(inter_req_delay_ms / 1000.0)
 
             eval_row = db.query(Round0Evaluation).filter(
                 Round0Evaluation.job_id == job.id,

@@ -435,37 +435,6 @@ export default function CandidateTakeRoundPage() {
       .finally(() => setTechLoading(false));
   };
 
-  // Auto-finish voice rounds when the configured duration elapses.
-  useEffect(() => {
-    if (!isVoiceRound || !interviewStarted || submitted || disqualified) return;
-    const minutes = Number(round?.duration_minutes ?? 0);
-    if (!Number.isFinite(minutes) || minutes <= 0) return;
-
-    const timeoutMs = Math.max(1, Math.round(minutes * 60 * 1000));
-    const tid = setTimeout(async () => {
-      stop();
-      stopListening();
-      try {
-        const result = await candidateApi.submitRound(roundId);
-        setSession((prev) => (prev ? { ...prev, ...result.data } : prev));
-        setSubmitted(true);
-      } catch (e: any) {
-        setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to submit"));
-      }
-    }, timeoutMs);
-
-    return () => clearTimeout(tid);
-  }, [
-    isVoiceRound,
-    interviewStarted,
-    submitted,
-    disqualified,
-    round?.duration_minutes,
-    roundId,
-    stop,
-    stopListening,
-  ]);
-
   const micStreamRef = useRef<MediaStream | null>(null);
   const micRetryCount = useRef(0);
   const micRetryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -609,6 +578,37 @@ export default function CandidateTakeRoundPage() {
     if (rec) try { rec.stop(); } catch {}
     setIsListening(false);
   }, []);
+
+  // Auto-finish voice rounds when the configured duration elapses.
+  useEffect(() => {
+    if (!isVoiceRound || !interviewStarted || submitted || disqualified) return;
+    const minutes = Number(round?.duration_minutes ?? 0);
+    if (!Number.isFinite(minutes) || minutes <= 0) return;
+
+    const timeoutMs = Math.max(1, Math.round(minutes * 60 * 1000));
+    const tid = setTimeout(async () => {
+      stop();
+      stopListening();
+      try {
+        const result = await candidateApi.submitRound(roundId);
+        setSession((prev) => (prev ? { ...prev, ...result.data } : prev));
+        setSubmitted(true);
+      } catch (e: any) {
+        setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to submit"));
+      }
+    }, timeoutMs);
+
+    return () => clearTimeout(tid);
+  }, [
+    isVoiceRound,
+    interviewStarted,
+    submitted,
+    disqualified,
+    round?.duration_minutes,
+    roundId,
+    stop,
+    stopListening,
+  ]);
 
   // Pause mic while AI is speaking, auto-resume when done
   useEffect(() => {

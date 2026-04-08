@@ -16,7 +16,7 @@ from app.core.config import get_settings
 from app.core.security import get_password_hash
 from app.db.session import Base, engine, SessionLocal
 from app.models.user import User, UserRole
-from app.routers import admin, auth, company, candidate, proctoring, round0
+from app.routers import admin, auth, company, candidate, proctoring, round0, vapi
 
 
 settings = get_settings()
@@ -117,4 +117,5 @@ app.include_router(company.router)
 app.include_router(candidate.router)
 app.include_router(proctoring.router)
 app.include_router(round0.router)
+app.include_router(vapi.router)
 

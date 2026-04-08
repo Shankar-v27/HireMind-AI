@@ -148,6 +148,15 @@ export const authApi = {
   me: () => api.get<{ id: number; email: string; full_name: string | null; role: string }>("/auth/me"),
 };
 
+// CSV download
+export const csvApi = {
+  downloadInterviewsCsv: () =>
+    api.get<Blob>("/download-csv", {
+      responseType: "blob",
+      headers: { Accept: "text/csv" },
+    }),
+};
+
 // Admin
 export const adminApi = {
   stats: () => api.get<{ total_companies: number; total_interviews: number; total_candidates: number }>("/admin/stats"),

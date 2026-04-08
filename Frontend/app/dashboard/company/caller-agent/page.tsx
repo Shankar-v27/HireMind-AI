@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { getApiErrorMessage, shortlistApi } from "@/lib/api";
+import { csvApi, getApiErrorMessage, shortlistApi } from "@/lib/api";
 
 type CallDetail = {
   name?: string;
@@ -94,33 +94,25 @@ export default function CallerAgentPage() {
     }
   }
 
-  function downloadCallReportCsv() {
-    if (!details.length) return;
+  async function downloadCallReportCsv() {
+    // Download interviews.csv created by the backend Vapi webhook.
+    setError(null);
+    try {
+      const res = await csvApi.downloadInterviewsCsv();
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: "text/csv;charset=utf-8" });
 
-    const rows = [
-      ["Name", "Phone Number", "Call Status", "Availability Date", "Notes"],
-      ...details.map((d) => [
-        d.name || "",
-        d.mobileNumber || "",
-        d.status || "",
-        d.availabilityDate || "",
-        toText(d.notes || d.reason),
-      ]),
-    ];
-
-    const csv = rows
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `caller_agent_report_${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "interviews.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      const axErr = err as { response?: { data?: { detail?: unknown } }; message?: string };
+      setError(getApiErrorMessage(axErr?.response?.data?.detail, axErr?.message || "Failed to download interviews.csv"));
+    }
   }
 
   return (
@@ -172,10 +164,10 @@ export default function CallerAgentPage() {
               <button
                 type="button"
                 onClick={downloadCallReportCsv}
-                disabled={!details.length}
+                disabled={activeAction !== null}
                 className="rounded-lg border border-white/30 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed transition"
               >
-                📥 Download Report CSV
+                📥 Download Interviews CSV
               </button>
             </div>
 

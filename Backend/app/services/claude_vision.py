@@ -1,8 +1,8 @@
 """
-Claude Vision API for proctoring (frame analysis) and verification (face matching).
+Claude Vision API for proctoring (frame analysis) and verification (identity checks).
 
 - analyze_proctor_frame: detect face visible, phone in frame, multiple people.
-- face_match: compare ID proof image with live photo; return confidence score.
+- face_match: compares ID proof + live photo (two images in one request) and returns match_confidence.
 
 Requires CLAUDE_API_KEY in environment. If not set, returns safe defaults (no penalty).
 """
@@ -211,37 +211,133 @@ def _call_claude_vision(image_base64: str, prompt: str, max_tokens: int = 300) -
                 }
             ],
         )
-        if msg.content and len(msg.content) > 0:
-            return msg.content[0].text
+        return _extract_text_from_message(msg)
     except Exception as exc:
         logger.warning("Claude Vision call failed: %s", exc)
     return None
 
 
+def _call_claude_vision_two_images(
+    first_image_base64: str,
+    second_image_base64: str,
+    prompt: str,
+    max_tokens: int = 150,
+) -> str | None:
+    """Call Claude with two images in one request; returns response text or None on error."""
+    settings = get_settings()
+    if not settings.claude_api_key:
+        return None
+    try:
+        import anthropic
+
+        client = anthropic.Anthropic(api_key=settings.claude_api_key)
+        media_type_1, b64_1 = _strip_data_url(first_image_base64)
+        media_type_2, b64_2 = _strip_data_url(second_image_base64)
+
+        msg = _messages_create_with_retry(
+            client,
+            purpose="vision_two_images",
+            model=settings.claude_model,
+            max_tokens=max_tokens,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type_1,
+                                "data": b64_1,
+                            },
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type_2,
+                                "data": b64_2,
+                            },
+                        },
+                        {"type": "text", "text": prompt},
+                    ],
+                }
+            ],
+        )
+        return _extract_text_from_message(msg)
+    except Exception as exc:
+        logger.warning("Claude Vision (two images) call failed: %s", exc)
+    return None
+
+
 def _parse_confidence(raw: str | None) -> float | None:
+    """Extract a confidence only when the model actually provided one.
+
+    Important: do NOT fall back to "first number in the text". When the model refuses or
+    echoes the instruction ("between 0 and 1"), naive parsing will incorrectly yield 0.
+    """
     if not raw:
         return None
     text = raw.strip()
 
-    # Prefer explicit percentage like 95%.
-    pct = re.search(r"(\d{1,3})\s*%", text)
-    if pct:
-        val = float(pct.group(1))
-        if 0 <= val <= 100:
-            return val / 100.0
-
-    # Look for a float in [0, 1] or a 0..100 integer.
-    nums = re.findall(r"(?<!\d)(?:0(?:\.\d+)?|1(?:\.0+)?|\d{1,3}(?:\.\d+)?)", text)
-    for n in nums:
-        try:
-            v = float(n)
-        except Exception:
+    # Only accept values when they appear on a keyed line (avoid parsing instruction echoes).
+    # Spec requires:
+    # - match_confidence: <0 to 1>
+    v_raw: str | None = None
+    for line in text.splitlines():
+        ln = line.strip()
+        if not ln:
             continue
-        if 0.0 <= v <= 1.0:
-            return v
-        if 1.0 < v <= 100.0:
-            return v / 100.0
+        m = re.match(
+            r"^match[_ ]?confidence\s*[:=]\s*(null|\d{1,3}\s*%|(?:0(?:\.\d+)?|1(?:\.0+)?))\s*$",
+            ln,
+            flags=re.IGNORECASE,
+        )
+        if m:
+            v_raw = m.group(1).strip().lower()
+            break
+
+    if v_raw is None:
+        return None
+
+    if v_raw == "null":
+        return None
+
+    if v_raw.endswith("%"):
+        try:
+            pct = float(v_raw[:-1].strip())
+            if 0 <= pct <= 100:
+                return pct / 100.0
+        except Exception:
+            return None
+        return None
+
+    try:
+        v = float(v_raw)
+    except Exception:
+        return None
+    if 0.0 <= v <= 1.0:
+        return v
+    if 1.0 < v <= 100.0:
+        return v / 100.0
     return None
+
+
+def _extract_text_from_message(msg: Any) -> str:
+    """Best-effort extraction of a text block from an Anthropic message."""
+    if msg is None:
+        return ""
+    content = getattr(msg, "content", None) or []
+    # content may be list of objects or dicts.
+    for block in content:
+        btype = getattr(block, "type", None) or (block.get("type") if isinstance(block, dict) else None)
+        if btype == "text":
+            return (getattr(block, "text", None) or (block.get("text") if isinstance(block, dict) else "") or "").strip()
+    # Fallback: if first block has text
+    if content:
+        first = content[0]
+        return (getattr(first, "text", None) or (first.get("text") if isinstance(first, dict) else "") or "").strip()
+    return ""
 
 
 def _parse_yes_no(text: str, key: str) -> bool:
@@ -296,63 +392,36 @@ Answer only with those three lines."""
 
 
 def face_match(id_proof_base64: str, live_photo_base64: str) -> dict[str, Any]:
-    """
-    Compare ID proof image with live webcam photo. Returns confidence score 0-1
-    and whether they appear to be the same person.
-    """
-    settings = get_settings()
+    """Compare ID proof image with live webcam photo using Claude Vision (two images in one request)."""
     result: dict[str, Any] = {
         "confidence": 0.0,
         "match": False,
+        "checked": False,
+        "error": None,
         "raw": None,
     }
+    settings = get_settings()
     if not settings.claude_api_key:
         return result
-    # Claude can accept multiple images in one message
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=settings.claude_api_key)
-        id_media_type, id_b64 = _strip_data_url(id_proof_base64)
-        photo_media_type, photo_b64 = _strip_data_url(live_photo_base64)
-        msg = _messages_create_with_retry(
-            client,
-            purpose="face_match",
-            model=settings.claude_model,
-            max_tokens=200,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "First image: ID proof (e.g. driver's license, college ID). Second image: live photo from webcam."},
-                        {
-                            "type": "image",
-                            "source": {"type": "base64", "media_type": id_media_type, "data": id_b64},
-                        },
-                        {
-                            "type": "image",
-                            "source": {"type": "base64", "media_type": photo_media_type, "data": photo_b64},
-                        },
-                        {
-                            "type": "text",
-                            "text": (
-                                "Do the two images show the same person? Reply with ONE line only in this format:\n"
-                                "match_confidence: <number between 0 and 1>\n"
-                                "Example: match_confidence: 0.95"
-                            ),
-                        },
-                    ],
-                }
-            ],
-        )
-        raw = msg.content[0].text if msg.content else ""
-        result["raw"] = raw
-        conf = _parse_confidence(raw)
-        if conf is not None:
-            result["confidence"] = min(1.0, max(0.0, conf))
-            result["match"] = result["confidence"] >= 0.7
-    except Exception as exc:
-        # Important: don't silently turn transient errors into "0%".
-        logger.warning("Face match failed: %s", exc)
+
+    prompt = (
+        "First image: ID proof. Second image: live photo.\n"
+        "Do the two images show the same person?\n"
+        "Reply with:\n"
+        "match_confidence: <0 to 1>"
+    )
+
+    raw = _call_claude_vision_two_images(id_proof_base64, live_photo_base64, prompt, max_tokens=150)
+    result["raw"] = raw
+    conf = _parse_confidence(raw)
+    if conf is None:
+        result["checked"] = False
+        result["error"] = "Claude did not return match_confidence"
+        return result
+
+    result["checked"] = True
+    result["confidence"] = conf
+    result["match"] = conf >= 0.7
     return result
 
 
@@ -375,7 +444,11 @@ def names_match(expected_name: str | None, extracted_name: str | None) -> bool:
         return False
     overlap = len(expected_tokens & extracted_tokens)
     shortest = min(len(expected_tokens), len(extracted_tokens))
-    return shortest > 0 and overlap >= shortest
+    if shortest <= 0:
+        return False
+    # "Sufficiently" = at least 60% token overlap of the shorter name.
+    required = max(1, int((shortest * 0.6) + 0.9999))
+    return overlap >= required
 
 
 def extract_id_name(id_proof_base64: str) -> dict[str, Any]:
@@ -388,9 +461,9 @@ def extract_id_name(id_proof_base64: str) -> dict[str, Any]:
     if not settings.claude_api_key:
         return result
     prompt = (
-        "Read the uploaded identity document and extract the primary full name of the person. "
-        "Reply with exactly one line in this format: full_name: <name>. "
-        "If the name is unreadable, reply exactly: full_name: unknown."
+        "Read the uploaded identity document and extract the full name.\n"
+        "Reply:\n"
+        "full_name: <name>"
     )
     raw = _call_claude_vision(id_proof_base64, prompt, max_tokens=150)
     result["raw"] = raw
@@ -398,9 +471,11 @@ def extract_id_name(id_proof_base64: str) -> dict[str, Any]:
         return result
     result["checked"] = True
     for line in raw.split("\n"):
-        if "full_name" in line.lower() and ":" in line:
-            extracted = line.split(":", 1)[1].strip()
-            if extracted.lower() != "unknown":
-                result["extracted_name"] = extracted
-            break
+        m = re.match(r"^full_name\s*:\s*(.+?)\s*$", line.strip(), flags=re.IGNORECASE)
+        if not m:
+            continue
+        extracted = m.group(1).strip()
+        if extracted and extracted.lower() not in {"unknown", "unreadable", "n/a", "na", "null"}:
+            result["extracted_name"] = extracted
+        break
     return result

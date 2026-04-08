@@ -828,9 +828,17 @@ def upsert_verification(
             "match": name_match_result if extracted_name else None,
         }
         fm = face_match(payload.id_proof_base64, payload.photo_base64)
-        ocr_data["face_match"] = {"confidence": fm["confidence"], "match": fm["match"]}
+        ocr_data["face_match"] = {
+            "confidence": fm.get("confidence"),
+            "match": fm.get("match"),
+            "checked": fm.get("checked"),
+            "error": fm.get("error"),
+            "raw": fm.get("raw"),
+        }
         id_name_ok = ocr_data["id_name_check"]["match"] is not False
-        if (fm.get("match") is True or (fm.get("confidence") or 0) >= 0.75) and id_name_ok:
+        confidence = fm.get("confidence")
+        face_ok = fm.get("match") is True or (isinstance(confidence, (int, float)) and confidence >= 0.75)
+        if face_ok and id_name_ok:
             verification.status = "approved"
         else:
             verification.status = "completed"

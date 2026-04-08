@@ -417,7 +417,10 @@ export default function CandidateVerificationPage() {
               <h2 className="mb-2 text-lg font-medium text-amber-200">Verification Review</h2>
               {faceMatch != null && (
                 <p className="text-sm text-white/70">
-                  Face match confidence: {Math.round((faceMatch.confidence ?? 0) * 100)}%
+                  Face match confidence:{" "}
+                  {typeof faceMatch.confidence === "number"
+                    ? `${Math.round(faceMatch.confidence * 100)}%`
+                    : "Checking..."}
                 </p>
               )}
               {idNameCheck?.checked && (

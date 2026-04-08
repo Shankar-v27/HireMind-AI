@@ -247,6 +247,8 @@ def start_round_session(
     round_obj = db.query(Round).filter(Round.id == round_id).first()
     if not round_obj:
         raise HTTPException(status_code=404, detail="Round not found")
+    if round_obj.type == "LIVE_INTERVIEW":
+        raise HTTPException(status_code=400, detail="HR has not started the meeting yet. Please wait.")
     link = db.query(InterviewCandidate).filter(
         InterviewCandidate.candidate_id == candidate.id,
         InterviewCandidate.interview_id == round_obj.interview_id,
@@ -266,11 +268,10 @@ def start_round_session(
     if existing:
         return existing
 
-    questions = db.query(Question).filter(
-        Question.round_id == round_id, Question.approved == True
-    ).all()
+    # Use the same question set candidates can see/answer.
+    questions = db.query(Question).filter(Question.round_id == round_id).all()
     q_ids = [q.id for q in questions]
-    max_score = sum(q.max_score for q in questions)
+    max_score = sum(float(q.max_score or 0) for q in questions)
 
     session = RoundSession(
         candidate_id=candidate.id,
@@ -511,7 +512,7 @@ def get_live_round_info(
     if not session or not session.meeting_room_name:
         return CandidateLiveInterviewInfo(
             status="waiting",
-            message="The interviewer has not started the live interview yet. Please wait.",
+            message="HR has not started the meeting yet. Please wait.",
             candidate_name=current_user.full_name or current_user.email,
             jitsi_domain=domain,
         )

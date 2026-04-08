@@ -194,6 +194,11 @@ export default function CandidateTakeRoundPage() {
     suppressVoiceDetection: false,
   });
 
+  const disqualifiedRef = useRef(false);
+  useEffect(() => {
+    disqualifiedRef.current = disqualified;
+  }, [disqualified]);
+
   const fetchRoundAndQuestions = useCallback(() => {
     if (!id || !roundId || !getToken()) {
       router.replace("/login");
@@ -345,7 +350,7 @@ export default function CandidateTakeRoundPage() {
         setTechCurrentQuestion(q);
         // Voice rounds should not end early based on AI "done".
         setTechDone(false);
-        if (q) speak(q);
+        if (q && !disqualifiedRef.current) speak(q);
       })
       .catch((e) => {
         if (e?.response?.status === 403) router.replace("/dashboard/candidate/verification?required=1");
@@ -411,6 +416,7 @@ export default function CandidateTakeRoundPage() {
 
   const handleTechSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (disqualifiedRef.current) return;
     const response = techResponse.trim();
     if (!response) return;
     setTechLoading(true);
@@ -429,7 +435,7 @@ export default function CandidateTakeRoundPage() {
         committedTranscriptRef.current = "";
         // Voice rounds should not end early based on AI "done".
         setTechDone(false);
-        if (r.data.question) speak(r.data.question);
+        if (r.data.question && !disqualifiedRef.current) speak(r.data.question);
       })
       .catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to submit")))
       .finally(() => setTechLoading(false));
@@ -578,6 +584,17 @@ export default function CandidateTakeRoundPage() {
     if (rec) try { rec.stop(); } catch {}
     setIsListening(false);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      stop();
+      stopListening();
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+    };
+  }, [stop, stopListening]);
 
   // Auto-finish voice rounds when the configured duration elapses.
   useEffect(() => {
@@ -844,7 +861,7 @@ export default function CandidateTakeRoundPage() {
             </div>
           ) : (
             <div className="mt-6 rounded-lg border border-white/20 bg-white/5 p-4 text-sm text-white/80">
-              {liveInfo?.message || "Waiting for the interviewer to start the meeting."}
+              {liveInfo?.message || "HR has not started the meeting yet. Please wait."}
             </div>
           )}
         </div>
@@ -857,7 +874,7 @@ export default function CandidateTakeRoundPage() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-black p-4 text-white">
         <div className="rounded-xl border border-white/20 bg-white/5 p-6 text-center space-y-3">
           <p className="text-white text-lg font-medium">
-            {isVoiceRound && techDone ? "Voice interview completed. Thank you." : "Round submitted successfully!"}
+            {isVoiceRound ? "This round is completed." : "Round submitted successfully!"}
           </p>
           {session?.total_score != null && (
             <p className="text-white text-2xl font-bold">

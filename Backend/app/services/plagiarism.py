@@ -59,7 +59,7 @@ def _claude_plagiarism_request(code: str) -> dict[str, Any] | None:
     api_key = (settings.claude_api_key or settings.plagiarism_api_key or "").strip()
     if not api_key:
         return None
-    model = (settings.claude_model or "claude-3-5-sonnet-latest").strip()
+    model = (settings.claude_model or "claude-sonnet-4-6").strip()
     code_snippet = (code or "")[:12000]
     prompt = f"""You are a code integrity checker. Analyze the following code submission and rate how likely it is to be AI-generated or copied from common sources (e.g. ChatGPT, GitHub, tutorials). Consider style, comments, structure, and typical human vs AI patterns.
 
@@ -131,7 +131,7 @@ def _claude_cross_plagiarism_request(candidate_code: str, other_codes: list[str]
     api_key = (settings.claude_api_key or settings.plagiarism_api_key or "").strip()
     if not api_key:
         return None
-    model = (settings.claude_model or "claude-3-5-sonnet-latest").strip()
+    model = (settings.claude_model or "claude-sonnet-4-6").strip()
     candidate_snippet = (candidate_code or "")[:6000]
     others_text = "\n\n---\n\n".join((c or "")[:4000] for c in other_codes[:5])
     prompt = f"""You are a code similarity checker. Compare the first code block (Candidate A) with each of the following code blocks (Candidate B, C, ...). Rate how similar they are in logic, structure, and wording (0.0 = different, 1.0 = nearly identical or copied).

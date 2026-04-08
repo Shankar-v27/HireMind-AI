@@ -71,12 +71,32 @@ export default function CompanyLiveInterviewPage() {
       router.replace("/login");
       return;
     }
+    // In React dev Strict Mode, effects can run twice. Guard against stale
+    // async responses setting error after a successful start.
+    let isActive = true;
+
     setLoading(true);
     setError(null);
-    companyApi.startLiveInterview(interviewId, roundId, candidateId)
-      .then((res) => setMeeting(res.data))
-      .catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to start live interview")))
-      .finally(() => setLoading(false));
+
+    companyApi
+      .startLiveInterview(interviewId, roundId, candidateId)
+      .then((res) => {
+        if (!isActive) return;
+        setMeeting(res.data);
+        setError(null);
+      })
+      .catch((e) => {
+        if (!isActive) return;
+        setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to start live interview"));
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
   }, [candidateId, interviewId, roundId, router]);
 
   const meetingSrc = useMemo(
@@ -220,7 +240,7 @@ export default function CompanyLiveInterviewPage() {
         </button>
       </header>
 
-      {error && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && !meeting && <p className="rounded bg-red-950/40 px-3 py-2 text-sm text-red-400">{error}</p>}
 
       {meeting && (
         <div className="flex flex-col gap-4 lg:flex-row">

@@ -1,6 +1,6 @@
 """
 Generate interview questions using Claude. Used for AI-generated question flow.
-Requires CLAUDE_API_KEY in environment. Uses CLAUDE_MODEL (default: claude-3-5-sonnet-latest).
+Requires CLAUDE_API_KEY in environment. Uses CLAUDE_MODEL (default: claude-sonnet-4-6).
 Generates questions with model answers; for coding, full problem + test cases and hidden test cases.
 """
 
@@ -68,7 +68,7 @@ def generate_questions(
     import anthropic
 
     client = anthropic.Anthropic(api_key=api_key)
-    model = (settings.claude_model or "claude-3-5-sonnet-latest").strip()
+    model = (settings.claude_model or "claude-sonnet-4-6").strip()
     diff = f" Difficulty: {difficulty}." if difficulty else ""
     dom = f" Domain/topic: {domain}." if domain else ""
     prompt = f"""You are an expert hiring assessor. Generate exactly {count} interview questions for round type: {round_type}.{diff}{dom}
@@ -98,7 +98,7 @@ For MCQ type, include 4 options in "content" (e.g. A) ... B) ... C) ... D) ...) 
         logger.warning("Claude model not found: %s", e)
         raise HTTPException(
             status_code=502,
-            detail=f"Claude model not found: {model}. Set CLAUDE_MODEL in backend/.env to a valid model (e.g. claude-3-5-sonnet-latest). See docs.anthropic.com for current models.",
+            detail=f"Claude model not found: {model}. Set CLAUDE_MODEL in backend/.env to a valid model (e.g. claude-sonnet-4-6 or claude-sonnet-4-20250514). See docs.anthropic.com for current models.",
         ) from e
     except anthropic.AuthenticationError as e:
         logger.warning("Claude API key invalid: %s", e)

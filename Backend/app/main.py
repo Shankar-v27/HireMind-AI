@@ -97,7 +97,6 @@ def ensure_schema_migrations() -> None:
         _safe_add_column(conn, "round_sessions", "meeting_url", "TEXT")
         _safe_add_column(conn, "round_sessions", "meeting_room_name", "VARCHAR(255)")
         _safe_add_column(conn, "round0_candidates", "resume_text", "TEXT")
-        _safe_add_column(conn, "round0_candidates", "email", "VARCHAR(255)")
 
 
 @app.on_event("startup")

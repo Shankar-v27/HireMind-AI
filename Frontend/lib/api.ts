@@ -11,10 +11,22 @@ export function getApiErrorMessage(detail: unknown, fallback: string): string {
   return fallback;
 }
 
-const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const LOCAL_API_URL = process.env.NEXT_PUBLIC_API_URL_LOCAL || "http://localhost:8000";
-const SHORTLIST_API_URL = process.env.NEXT_PUBLIC_SHORTLIST_API_URL || LOCAL_API_URL;
 const isLocalFrontend = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const PRIMARY_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hiremind-ai-5kza.onrender.com";
+const LOCAL_API_URL = process.env.NEXT_PUBLIC_API_URL_LOCAL || "http://localhost:8000";
+
+function resolveShortlistApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_SHORTLIST_API_URL;
+  if (!configured) return isLocalFrontend ? LOCAL_API_URL : PRIMARY_API_URL;
+
+  const configuredIsLocal = /localhost|127\.0\.0\.1/i.test(configured);
+  // Never use a local-only API URL from a deployed frontend host.
+  if (!isLocalFrontend && configuredIsLocal) return PRIMARY_API_URL;
+
+  return configured;
+}
+
+const SHORTLIST_API_URL = resolveShortlistApiUrl();
 let activeBaseUrl = isLocalFrontend ? LOCAL_API_URL : PRIMARY_API_URL;
 
 function canFallbackToLocal(currentUrl?: string): boolean {

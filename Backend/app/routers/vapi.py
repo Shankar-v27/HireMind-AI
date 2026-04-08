@@ -42,6 +42,28 @@ def _append_row(call_id: str, transcript: str) -> None:
             writer.writerow([call_id, transcript])
 
 
+def _ensure_csv_exists() -> Path:
+    """Ensure interviews.csv exists and has a header row."""
+    path = _csv_path()
+    file_exists = os.path.exists(path)
+    file_empty = (not file_exists) or os.path.getsize(path) == 0
+
+    if not file_empty:
+        return path
+
+    with _csv_lock:
+        file_exists = os.path.exists(path)
+        file_empty = (not file_exists) or os.path.getsize(path) == 0
+        if not file_empty:
+            return path
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with open(path, mode="a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["call_id", "transcript"])
+    return path
+
+
 @router.post("/vapi/webhook")
 def vapi_webhook(payload: VapiWebhookPayload):
     # Basic logging (avoid printing full transcript in logs)
@@ -62,9 +84,7 @@ def vapi_webhook(payload: VapiWebhookPayload):
 
 @router.get("/download-csv")
 def download_csv():
-    path = _csv_path()
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="interviews.csv not found")
+    path = _ensure_csv_exists()
 
     return FileResponse(
         path=str(path),

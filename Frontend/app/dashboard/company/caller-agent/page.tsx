@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { csvApi, getApiErrorMessage, shortlistApi } from "@/lib/api";
 
 type CallDetail = {
@@ -30,6 +30,56 @@ export default function CallerAgentPage() {
   const [activeAction, setActiveAction] = useState<"call" | "email" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [details, setDetails] = useState<CallDetail[]>([]);
+
+  useEffect(() => {
+    const pending = details.filter((d) =>
+      Boolean(d.vapiCallId) &&
+      ["queued", "initiated", "ringing", "in_progress", "in-progress", "calling"].includes(String(d.status || "").toLowerCase())
+    );
+
+    if (!pending.length) return;
+
+    let alive = true;
+    let inFlight = false;
+
+    const tick = async () => {
+      if (!alive || inFlight) return;
+      const callIds = pending.map((d) => d.vapiCallId).filter(Boolean) as string[];
+      if (!callIds.length) return;
+
+      inFlight = true;
+      try {
+        const res = await shortlistApi.getCallerCallStatuses(callIds);
+        const calls = res.data?.calls || {};
+        if (!alive) return;
+
+        setDetails((prev) =>
+          prev.map((d) => {
+            const cid = d.vapiCallId;
+            if (!cid) return d;
+            const next = calls[cid];
+            if (!next || !next.status) return d;
+            // Only update when it actually changes
+            if (String(d.status || "").toLowerCase() === String(next.status).toLowerCase()) return d;
+            return { ...d, status: String(next.status) };
+          })
+        );
+      } catch {
+        // Silent: status polling should not spam UI errors.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    // Run immediately and then poll.
+    tick();
+    const id = window.setInterval(tick, 5000);
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+    // Recompute when details change.
+  }, [details]);
 
   const stats = useMemo(() => {
     return {

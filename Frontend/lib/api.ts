@@ -444,6 +444,13 @@ export const shortlistApi = {
       }>;
     }>("/caller/upload-csv-and-email", form, { headers: { "Content-Type": "multipart/form-data" } });
   },
+
+  // Caller status polling (Vapi)
+  getCallerCallStatuses: (callIds: string[]) =>
+    shortlistApiClient.post<{ success: boolean; calls: Record<string, { call_id: string; status?: string | null; ended_at?: string | null; ended_reason?: unknown; error?: string }> }>(
+      "/caller/calls/status",
+      { call_ids: callIds }
+    ),
 };
 
 export default api;

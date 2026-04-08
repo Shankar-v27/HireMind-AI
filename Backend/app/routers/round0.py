@@ -13,6 +13,7 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -212,6 +213,75 @@ def _call_vapi(phone_number: str, candidate_name: str, role_name: str) -> dict[s
         except Exception as e:
             print(f"[Vapi] Unexpected call error for '{candidate_name or 'Candidate'}': {e}")
             raise
+
+
+def _get_vapi_call_status(call_id: str) -> dict[str, Any]:
+    vapi_key = os.getenv("VAPI_API_KEY", "").strip()
+    if not vapi_key:
+        raise HTTPException(status_code=500, detail="Vapi credentials missing")
+
+    cid = str(call_id or "").strip()
+    if not cid:
+        raise HTTPException(status_code=400, detail="call_id is required")
+
+    base_url = str(os.getenv("VAPI_BASE_URL", "https://api.vapi.ai") or "https://api.vapi.ai").rstrip("/")
+
+    with httpx.Client(timeout=20.0) as client:
+        resp = client.get(
+            f"{base_url}/call/{cid}",
+            headers={"Authorization": f"Bearer {vapi_key}", "Content-Type": "application/json"},
+        )
+        # Let 404 propagate (invalid call_id) as-is; others as HTTP errors.
+        resp.raise_for_status()
+        data = resp.json() if resp.content else {}
+
+    status = str(data.get("status") or "").strip() or None
+    ended_reason = data.get("endedReason") or data.get("ended_reason")
+    ended_at = data.get("endedAt") or data.get("ended_at")
+    started_at = data.get("startedAt") or data.get("started_at")
+
+    return {
+        "call_id": cid,
+        "status": status,
+        "started_at": started_at,
+        "ended_at": ended_at,
+        "ended_reason": ended_reason,
+    }
+
+
+class CallerStatusRequest(BaseModel):
+    call_ids: list[str]
+
+
+@router.post("/caller/calls/status")
+def caller_calls_status(
+    payload: CallerStatusRequest,
+    current_user: User = Depends(get_current_company),
+):
+    _ = current_user
+
+    call_ids = [str(c or "").strip() for c in (payload.call_ids or []) if str(c or "").strip()]
+    # Keep it bounded.
+    call_ids = call_ids[:50]
+    results: dict[str, dict[str, Any]] = {}
+
+    for cid in call_ids:
+        try:
+            results[cid] = _get_vapi_call_status(cid)
+        except httpx.HTTPStatusError as e:
+            results[cid] = {
+                "call_id": cid,
+                "status": None,
+                "error": f"Vapi status lookup failed: {e.response.status_code}",
+            }
+        except Exception as e:
+            results[cid] = {
+                "call_id": cid,
+                "status": None,
+                "error": f"Vapi status lookup failed: {str(e)}",
+            }
+
+    return {"success": True, "calls": results}
 
 
 def _parse_claude_json(raw: str) -> dict[str, Any]:

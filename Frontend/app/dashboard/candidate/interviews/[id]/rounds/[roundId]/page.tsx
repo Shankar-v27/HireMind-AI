@@ -343,7 +343,8 @@ export default function CandidateTakeRoundPage() {
       .then((r) => {
         const q = r.data.question;
         setTechCurrentQuestion(q);
-        setTechDone(r.data.done);
+        // Voice rounds should not end early based on AI "done".
+        setTechDone(false);
         if (q) speak(q);
       })
       .catch((e) => {
@@ -426,12 +427,44 @@ export default function CandidateTakeRoundPage() {
         setTechAnalysis(r.data.analysis);
         setTechResponse("");
         committedTranscriptRef.current = "";
-        setTechDone(r.data.done);
+        // Voice rounds should not end early based on AI "done".
+        setTechDone(false);
         if (r.data.question) speak(r.data.question);
       })
       .catch((e) => setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to submit")))
       .finally(() => setTechLoading(false));
   };
+
+  // Auto-finish voice rounds when the configured duration elapses.
+  useEffect(() => {
+    if (!isVoiceRound || !interviewStarted || submitted || disqualified) return;
+    const minutes = Number(round?.duration_minutes ?? 0);
+    if (!Number.isFinite(minutes) || minutes <= 0) return;
+
+    const timeoutMs = Math.max(1, Math.round(minutes * 60 * 1000));
+    const tid = setTimeout(async () => {
+      stop();
+      stopListening();
+      try {
+        const result = await candidateApi.submitRound(roundId);
+        setSession((prev) => (prev ? { ...prev, ...result.data } : prev));
+        setSubmitted(true);
+      } catch (e: any) {
+        setError(getApiErrorMessage(e?.response?.data?.detail, "Failed to submit"));
+      }
+    }, timeoutMs);
+
+    return () => clearTimeout(tid);
+  }, [
+    isVoiceRound,
+    interviewStarted,
+    submitted,
+    disqualified,
+    round?.duration_minutes,
+    roundId,
+    stop,
+    stopListening,
+  ]);
 
   const micStreamRef = useRef<MediaStream | null>(null);
   const micRetryCount = useRef(0);

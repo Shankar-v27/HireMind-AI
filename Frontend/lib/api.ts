@@ -441,6 +441,7 @@ export const shortlistApi = {
         status: string;
         reason?: string;
         smtpStatus?: number;
+        emailStatus?: { status: string; reason?: string; smtpStatus?: number; email?: string };
       }>;
     }>("/caller/upload-csv-and-email", form, { headers: { "Content-Type": "multipart/form-data" } });
   },

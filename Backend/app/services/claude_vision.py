@@ -60,18 +60,21 @@ def _call_claude_vision(image_base64: str, prompt: str, max_tokens: int = 300) -
     return None
 
 
-def _parse_yes_no(text: str, key: str) -> bool:
-    """Parse a line like 'face_visible: yes' or 'face_visible: no' from response."""
+def _parse_yes_no_strict(text: str | None, key: str) -> bool | None:
+    """Parse an exact line like '{key}: yes' or '{key}: no'.
+
+    Returns:
+      - True/False if we found a strict match
+      - None if the response is missing/ambiguous (safe caller defaults should apply)
+    """
     if not text:
-        return False
-    text = text.lower().strip()
-    # Look for key: yes/no
+        return None
+    pattern = re.compile(rf"^\s*{re.escape(key)}\s*:\s*(yes|no)\s*\.?\s*$", re.IGNORECASE)
     for line in text.split("\n"):
-        line = line.strip()
-        if key in line and ":" in line:
-            val = line.split(":", 1)[1].strip().lower()
-            return val.startswith("y") or val == "1" or "yes" in val
-    return False
+        match = pattern.match(line)
+        if match:
+            return match.group(1).strip().lower() == "yes"
+    return None
 
 
 def analyze_proctor_frame(image_base64: str) -> dict[str, Any]:
@@ -90,24 +93,26 @@ def analyze_proctor_frame(image_base64: str) -> dict[str, Any]:
     if not settings.claude_api_key:
         return result
     prompt = """Look at this image from a candidate's webcam during an online assessment.
-Answer with exactly these three lines (nothing else):
-face_visible: yes or no  (is exactly one person's face clearly visible and facing the camera?)
-phone_detected: yes or no  (is a phone, smartphone, or handheld device visible in the frame?)
-multiple_faces: yes or no  (are two or more different people's faces visible?)
 
-Answer only with those three lines."""
+Reply with EXACTLY three lines (no extra words):
+face_visible: yes
+phone_detected: yes
+multiple_faces: yes
+
+Use 'no' instead of 'yes' when not detected."""
     raw = _call_claude_vision(image_base64, prompt)
     result["raw"] = raw
     if not raw:
         return result
-    for line in raw.split("\n"):
-        line_l = line.lower().strip()
-        if "face_visible" in line_l and ":" in line:
-            val = line.split(":", 1)[1].strip().lower()
-            result["face_visible"] = val.startswith("y") or val == "1"
-            break
-    result["phone_detected"] = _parse_yes_no(raw, "phone_detected")
-    result["multiple_faces"] = _parse_yes_no(raw, "multiple_faces")
+    face_visible = _parse_yes_no_strict(raw, "face_visible")
+    phone_detected = _parse_yes_no_strict(raw, "phone_detected")
+    multiple_faces = _parse_yes_no_strict(raw, "multiple_faces")
+    if face_visible is not None:
+        result["face_visible"] = face_visible
+    if phone_detected is not None:
+        result["phone_detected"] = phone_detected
+    if multiple_faces is not None:
+        result["multiple_faces"] = multiple_faces
     return result
 
 
@@ -172,23 +177,46 @@ def face_match(id_proof_base64: str, live_photo_base64: str) -> dict[str, Any]:
 def normalize_person_name(name: str | None) -> str:
     if not name:
         return ""
-    return re.sub(r"[^a-z0-9 ]+", "", name.lower()).strip()
+    cleaned = name.casefold()
+    cleaned = re.sub(r"[^a-z0-9 ]+", " ", cleaned)  # keep word boundaries
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def _tokenize_person_name(name: str) -> list[str]:
+    return [t for t in re.findall(r"[a-z0-9]+", name.casefold()) if t]
 
 
 def names_match(expected_name: str | None, extracted_name: str | None) -> bool:
-    expected = normalize_person_name(expected_name)
-    extracted = normalize_person_name(extracted_name)
-    if not expected or not extracted:
+    expected_norm = normalize_person_name(expected_name)
+    extracted_norm = normalize_person_name(extracted_name)
+    if not expected_norm or not extracted_norm:
         return False
-    if expected == extracted:
-        return True
-    expected_tokens = {token for token in expected.split() if token}
-    extracted_tokens = {token for token in extracted.split() if token}
+    expected_tokens = _tokenize_person_name(expected_norm)
+    extracted_tokens = _tokenize_person_name(extracted_norm)
     if not expected_tokens or not extracted_tokens:
         return False
-    overlap = len(expected_tokens & extracted_tokens)
-    shortest = min(len(expected_tokens), len(extracted_tokens))
-    return shortest > 0 and overlap >= shortest
+
+    expected_set = set(expected_tokens)
+    extracted_set = set(extracted_tokens)
+    if expected_set == extracted_set:
+        return True
+
+    # Token overlap (order-insensitive). Require full containment of the shorter set.
+    overlap = len(expected_set & extracted_set)
+    shortest = min(len(expected_set), len(extracted_set))
+    if shortest > 0 and overlap >= shortest:
+        return True
+
+    # Initials heuristic: tolerate "A.M" vs "A M" (or similar multi-initial forms).
+    expected_initials = "".join([t for t in expected_tokens if len(t) == 1])
+    extracted_initials = "".join([t for t in extracted_tokens if len(t) == 1])
+    if expected_initials and expected_initials in extracted_set:
+        return True
+    if extracted_initials and extracted_initials in expected_set:
+        return True
+
+    return False
 
 
 def extract_id_name(id_proof_base64: str) -> dict[str, Any]:

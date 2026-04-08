@@ -28,6 +28,7 @@ from app.models.core import (
 from app.models.user import User
 from app.routers.auth import get_current_company
 from app.routers.company import get_company_for_user
+from app.services.emailjs_service import send_email_via_emailjs
 
 
 router = APIRouter(tags=["round0"])
@@ -771,6 +772,103 @@ async def round0_upload_csv_and_call(
             details.append({"name": name, "mobileNumber": mobile, "status": "failed", "reason": _stringify_reason(reason)})
 
     return {"success": True, "called": called, "skipped": skipped, "failed": failed, "details": details}
+
+
+@router.post("/caller/upload-csv-and-email")
+async def round0_upload_csv_and_email(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_company),
+):
+    _ = current_user
+
+    content = await file.read()
+    text = content.decode("utf-8-sig", errors="ignore")
+    reader = csv.DictReader(io.StringIO(text))
+
+    fieldnames = [str(x).strip().lower() for x in (reader.fieldnames or [])]
+    email_headers = {"email", "email address", "mail"}
+    if not any(h in fieldnames for h in email_headers):
+        raise HTTPException(status_code=400, detail="CSV must contain an email column")
+
+    sent = 0
+    skipped = 0
+    failed = 0
+    details: list[dict[str, Any]] = []
+
+    for row in reader:
+        name = str(row.get("name") or row.get("Name") or row.get("candidate name") or row.get("Candidate Name") or "").strip() or "Candidate"
+        email = str(
+            row.get("email")
+            or row.get("Email")
+            or row.get("email address")
+            or row.get("Email Address")
+            or row.get("mail")
+            or row.get("Mail")
+            or ""
+        ).strip()
+
+        reason = str(
+            row.get("reason")
+            or row.get("Reason")
+            or row.get("reason for shortlisting")
+            or row.get("Reason for shortlisting")
+            or row.get("Reason for Shortlisting")
+            or ""
+        ).strip()
+
+        if not email or "@" not in email:
+            skipped += 1
+            details.append(
+                {
+                    "name": name,
+                    "email": email or None,
+                    "status": "skipped",
+                    "reason": f"invalid email: {email or 'missing'}",
+                    "emailStatus": {"status": "skipped", "reason": f"invalid email: {email or 'missing'}", "email": email or None},
+                }
+            )
+            continue
+
+        message = (
+            f"Hi {name},\n\n"
+            "You’ve been shortlisted for the next round. "
+            "Please reply to this email with your availability for the interview.\n\n"
+            + (f"Shortlisting reason: {reason}\n\n" if reason else "")
+            + "Regards,\nHireMind"
+        )
+
+        ok, status_code, error_text = await send_email_via_emailjs(
+            to_email=email,
+            to_name=name,
+            message=message,
+            extra_params={"reason": reason} if reason else None,
+        )
+
+        if ok:
+            sent += 1
+            details.append(
+                {
+                    "name": name,
+                    "email": email,
+                    "status": "sent",
+                    "smtpStatus": status_code,
+                    "emailStatus": {"status": "sent", "smtpStatus": status_code, "email": email},
+                }
+            )
+        else:
+            failed += 1
+            details.append(
+                {
+                    "name": name,
+                    "email": email,
+                    "status": "failed",
+                    "reason": error_text,
+                    "smtpStatus": status_code,
+                    "emailStatus": {"status": "failed", "reason": error_text, "smtpStatus": status_code, "email": email},
+                }
+            )
+
+    return {"success": True, "sent": sent, "skipped": skipped, "failed": failed, "details": details}
 
 
 @router.get("/caller/report/{job_id}/csv")

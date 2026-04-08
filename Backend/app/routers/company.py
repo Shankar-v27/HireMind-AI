@@ -92,7 +92,7 @@ def _get_recommendation_status(
 ) -> str:
     if shortlist_count and shortlist_count > 0:
         if rank is not None and rank <= shortlist_count:
-            return "recommended"
+            return "recommended" if overall_score >= 80 else "rejected"
         if overall_score >= 50:
             return "waiting_list"
         return "rejected"

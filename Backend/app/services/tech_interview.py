@@ -58,12 +58,12 @@ Candidate's latest response: {candidate_response}
 
 Tasks:
 1. In one short sentence, analyze the response (strength/weakness).
-2. Either ask exactly ONE follow-up technical question, or if you have enough to evaluate (e.g. 3-4 exchanges), end the interview.
+2. Ask exactly ONE follow-up technical question. Do NOT end the interview.
 
 Output format, exactly:
 ANALYSIS: <one sentence>
-QUESTION: <next question> OR DONE: yes
-If ending, use DONE: yes and no QUESTION line."""
+QUESTION: <next question>
+Do not output DONE."""
         msg = client.messages.create(
             model=settings.claude_model,
             max_tokens=600,
@@ -72,17 +72,14 @@ If ending, use DONE: yes and no QUESTION line."""
         text = (msg.content[0].text if msg.content else "").strip()
         analysis = ""
         question = ""
-        done = False
         for line in text.split("\n"):
             line = line.strip()
             if line.upper().startswith("ANALYSIS:"):
                 analysis = line.split(":", 1)[1].strip()
             elif line.upper().startswith("QUESTION:"):
                 question = line.split(":", 1)[1].strip()
-            elif "DONE:" in line.upper():
-                done = True
-        if not question and not done:
+        if not question:
             question = "Anything else you'd like to add?"
-        return {"question": question, "analysis": analysis, "done": done}
+        return {"question": question, "analysis": analysis, "done": False}
     except Exception:
         return {"question": "", "analysis": "Analysis unavailable.", "done": True}

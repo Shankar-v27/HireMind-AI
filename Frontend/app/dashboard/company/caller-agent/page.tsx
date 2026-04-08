@@ -131,6 +131,14 @@ export default function CallerAgentPage() {
       const normalized = (res.data?.details ?? []).map((d) => ({
         ...d,
         reason: toText(d.reason),
+        emailStatus:
+          (d as any).emailStatus ??
+          {
+            status: String((d as any).status || ""),
+            reason: (d as any).reason ? toText((d as any).reason) : undefined,
+            smtpStatus: (d as any).smtpStatus,
+            email: (d as any).email,
+          },
       }));
       setDetails(normalized);
     } catch (err: unknown) {

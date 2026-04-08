@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 _backend_root = Path(__file__).resolve().parent.parent
 load_dotenv(_backend_root / ".env")
 
+# Optional fallback: local dev sometimes keeps EmailJS vars in Frontend/.env.
+# This does not override real environment variables.
+_frontend_root = _backend_root.parent / "Frontend"
+load_dotenv(_frontend_root / ".env")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
